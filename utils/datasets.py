@@ -30,6 +30,8 @@ from utils.general import check_requirements, xyxy2xywh, xywh2xyxy, xywhn2xyxy, 
     resample_segments, clean_str
 from utils.torch_utils import torch_distributed_zero_first
 
+from pycocotools.coco import COCO
+
 # Parameters
 help_url = 'https://github.com/ultralytics/yolov5/wiki/Train-Custom-Data'
 img_formats = ['bmp', 'jpg', 'jpeg', 'png', 'tif', 'tiff', 'dng', 'webp', 'mpo']  # acceptable image suffixes
@@ -66,16 +68,28 @@ def create_dataloader(path, imgsz, batch_size, stride, opt, hyp=None, augment=Fa
                       rank=-1, world_size=1, workers=8, image_weights=False, quad=False, prefix=''):
     # Make sure only the first process in DDP process the dataset first, and the following others can use the cache
     with torch_distributed_zero_first(rank):
-        dataset = LoadImagesAndLabels(path, imgsz, batch_size,
-                                      augment=augment,  # augment images
-                                      hyp=hyp,  # augmentation hyperparameters
-                                      rect=rect,  # rectangular training
-                                      cache_images=cache,
-                                      single_cls=opt.single_cls,
-                                      stride=int(stride),
-                                      pad=pad,
-                                      image_weights=image_weights,
-                                      prefix=prefix)
+        if path.endswith(".json"):
+                dataset = LoadCOCO(path, imgsz, batch_size,
+                                    augment=augment,  # augment images
+                                    hyp=hyp,  # augmentation hyperparameters
+                                    rect=rect,  # rectangular training
+                                    cache_images=cache,
+                                    single_cls=opt.single_cls,
+                                    stride=int(stride),
+                                    pad=pad,
+                                    image_weights=image_weights,
+                                    prefix=prefix)
+        else:
+            dataset = LoadImagesAndLabels(path, imgsz, batch_size,
+                                        augment=augment,  # augment images
+                                        hyp=hyp,  # augmentation hyperparameters
+                                        rect=rect,  # rectangular training
+                                        cache_images=cache,
+                                        single_cls=opt.single_cls,
+                                        stride=int(stride),
+                                        pad=pad,
+                                        image_weights=image_weights,
+                                        prefix=prefix)
 
     batch_size = min(batch_size, len(dataset))
     nw = min([os.cpu_count() // world_size, batch_size if batch_size > 1 else 0, workers])  # number of workers
@@ -661,6 +675,180 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
 
         return torch.stack(img4, 0), torch.cat(label4, 0), path4, shapes4
 
+class LoadCOCO(LoadImagesAndLabels):
+    def __init__(self, path, img_size=640, batch_size=16, augment=False, hyp=None, rect=False, image_weights=False,
+                 cache_images=False, single_cls=False, stride=32, pad=0.0, prefix=''):
+        self.img_size = img_size
+        self.augment = augment
+        self.hyp = hyp
+        self.image_weights = image_weights
+        self.rect = False if image_weights else rect
+        #print(path)
+        #print(self.image_weights)
+        #print(self.rect)
+        self.mosaic = self.augment and not self.rect  # load 4 images at a time into a mosaic (only during training)
+        self.mosaic_border = [-img_size // 2, -img_size // 2]
+        self.stride = stride
+        self.path = path
+        
+        self.albumentations = Albumentations() if augment else None
+
+        # dictory example:
+        # annotations: path = data_root/annotations/train.json; here path is the dir for annotation file
+        # images: data_root/images/*
+        coco = COCO(path)
+        data_root = Path(path).parent.parent
+        images_root = os.path.join(data_root,'images')
+        self.img_files =  []
+        self.labels = [] #(img,cat,x,y,w,h)
+        self.shapes = []
+        self.segments = []
+        self.obbs = []
+        self.cls_names = coco.loadCats()
+        if self.cls_names:
+            select_cats_id = coco.getCatIds(catNms=self.cls_names)
+        else:
+            select_cats_id = coco.getCatIds()
+
+        self.cat_id_map = {}
+        for new_cat_id,cat_id in enumerate(select_cats_id):
+            self.cat_id_map[cat_id] = new_cat_id
+        
+        for ImgId in coco.getImgIds():
+
+            img = coco.loadImgs([ImgId])[0]
+            
+            img['width'] = img['roi'][2]-img["roi"][0]
+            img['height'] = img['roi'][3]-img["roi"][1]
+
+            img_width,img_height = img['width'],img['height']
+
+            annIds =  coco.getAnnIds(ImgId)
+            anns = coco.loadAnns(annIds)
+
+            boxes = []
+            segs = []
+            for ann in anns:
+                if ann['category_id'] in select_cats_id:
+                    
+                    box = [self.cat_id_map[ann['category_id']],
+                            (ann['bbox'][0]+ann['bbox'][2]/2)/img_width,
+                            (ann['bbox'][1]+ann['bbox'][3]/2)/img_height,
+                            ann['bbox'][2]/img_width,
+                            ann['bbox'][3]/img_height]
+                    '''
+                    box = []
+                    box.append(cat_id_map[ann['category_id']])
+                    '''
+                    seg = []
+                    #seg.append(self.cat_id_map[ann['category_id']])
+
+                    #ann_segmentation_minrect = seg2minrect(ann['segmentation'][0])
+                    
+                    for coord_index,coord in enumerate(ann['segmentation'][0]):
+                        if coord_index%2==1:
+                            
+                            #box.append(ann_segmentation_minrect[coord_index-1]/img_width)
+                            #box.append(coord/img_height)
+
+                            seg.append(ann['segmentation'][0][coord_index-1]/img_width)
+                            seg.append(coord/img_height)
+
+                            #box.append(ann_segmentation_minrect[coord_index-1])
+                            #box.append(coord)
+
+                            #seg.append(ann['segmentation'][0][coord_index-1])
+                            #seg.append(coord)
+                    
+                    boxes.append(box)
+                    segs.append(np.array(seg, dtype=np.float32).reshape(-1, 2))
+
+            if len(boxes)>0:
+                self.shapes.append((img_width,img_height))
+                if 'Wide' in img['file_name']:
+                    img['file_name'] = img['file_name'].replace('andover','andover_wide')# this is for trans_drone only
+                self.img_files.append(os.path.join(images_root,img['file_name']))
+                
+                self.labels.append(np.array(boxes, dtype=np.float64))
+                self.segments.append(segs)
+                #self.obbs.append(np.array(poly2obb_without_regular(segs), dtype=np.float64))
+
+        # Read cache
+        #[cache.pop(k) for k in ('hash', 'version', 'msgs')]  # remove items
+        #labels, shapes, self.segments = zip(*cache.values())
+        #self.labels = list(labels)
+        self.shapes = np.array(self.shapes, dtype=np.float64)
+        #self.img_files = list(cache.keys())  # update
+        #self.label_files = img2label_paths(cache.keys())  # update
+        n = len(self.shapes)  # number of images
+        bi = np.floor(np.arange(n) / batch_size).astype(np.int)  # batch index
+        nb = bi[-1] + 1  # number of batches
+        self.batch = bi  # batch index of image
+        self.n = n
+        self.indices = range(n)
+
+        # Update labels
+        include_class = []  # filter labels to include only these classes (optional)
+        include_class_array = np.array(include_class).reshape(1, -1)
+        for i, (label, segment) in enumerate(zip(self.labels, self.segments)):
+            if include_class:
+                j = (label[:, 0:1] == include_class_array).any(1)
+                self.labels[i] = label[j]
+                if segment:
+                    self.segments[i] = segment[j]
+            if single_cls:  # single-class training, merge all classes into 0
+                self.labels[i][:, 0] = 0
+                #if segment:
+                #    self.segments[i][:, 0] = 0
+            #assert len(label)==len(segment),"they should be equal"
+
+        #self.rect = True
+        # Rectangular Training
+        if self.rect:
+            # Sort by aspect ratio
+            s = self.shapes  # wh
+            ar = s[:, 1] / s[:, 0]  # aspect ratio
+            irect = ar.argsort()
+            self.img_files = [self.img_files[i] for i in irect]
+            #self.label_files = [self.label_files[i] for i in irect]
+            self.labels = [self.labels[i] for i in irect]
+            self.segments = [self.segments[i] for i in irect]
+            self.shapes = s[irect]  # wh
+            ar = ar[irect]
+
+            # Set training image shapes
+            shapes = [[1, 1]] * nb
+            for i in range(nb):
+                ari = ar[bi == i]
+                mini, maxi = ari.min(), ari.max()
+                if maxi < 1:
+                    shapes[i] = [maxi, 1]
+                elif mini > 1:
+                    shapes[i] = [1, 1 / mini]
+
+            self.batch_shapes = np.ceil(np.array(shapes) * img_size / stride + pad).astype(np.int) * stride
+
+        # Cache images into RAM/disk for faster training (WARNING: large datasets may exceed system resources)
+        self.imgs, self.img_npy = [None] * n, [None] * n
+        if cache_images:
+            if cache_images == 'disk':
+                self.im_cache_dir = Path(Path(self.img_files[0]).parent.as_posix() + '_npy')
+                self.img_npy = [self.im_cache_dir / Path(f).with_suffix('.npy').name for f in self.img_files]
+                self.im_cache_dir.mkdir(parents=True, exist_ok=True)
+            gb = 0  # Gigabytes of cached images
+            self.img_hw0, self.img_hw = [None] * n, [None] * n
+            results = ThreadPool(8).imap(self.load_image, range(n))
+            pbar = tqdm(enumerate(results), total=n)
+            for i, x in pbar:
+                if cache_images == 'disk':
+                    if not self.img_npy[i].exists():
+                        np.save(self.img_npy[i].as_posix(), x[0])
+                    gb += self.img_npy[i].stat().st_size
+                else:  # 'ram'
+                    self.imgs[i], self.img_hw0[i], self.img_hw[i] = x  # im, hw_orig, hw_resized = load_image(self, i)
+                    gb += self.imgs[i].nbytes
+                pbar.desc = f'{prefix}Caching images ({gb / 1E9:.1f}GB {cache_images})'
+            pbar.close()
 
 # Ancillary functions --------------------------------------------------------------------------------------------------
 def load_image(self, index):
@@ -730,6 +918,8 @@ def load_mosaic(self, index):
         elif i == 3:  # bottom right
             x1a, y1a, x2a, y2a = xc, yc, min(xc + w, s * 2), min(s * 2, yc + h)
             x1b, y1b, x2b, y2b = 0, 0, min(w, x2a - x1a), min(y2a - y1a, h)
+        
+        labels, segments = self.labels[index].copy(), self.segments[index].copy()
 
         img4[y1a:y2a, x1a:x2a] = img[y1b:y2b, x1b:x2b]  # img4[ymin:ymax, xmin:xmax]
         padw = x1a - x1b
