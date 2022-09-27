@@ -1,0 +1,10 @@
+
+train: /data/qilei/DATASETS/WJ_V1/annotations/train.roi  
+val: /data/qilei/DATASETS/WJ_V1/annotations/test.roi
+test: /data/qilei/DATASETS/WJ_V1/annotations/test.roi
+
+# number of classes
+nc: 1
+
+# class names
+names: [ 'roi']
