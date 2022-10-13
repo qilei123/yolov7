@@ -1,2 +1,0 @@
-#python detect.py --weights /data/qilei/DATASETS/WJ_V1/yolov7_single_cls_2/yolov7-wj_v1/weights/best.pt --source /data/qilei/DATASETS/WJ_V1/images/3/ --project /data/qilei/DATASETS/WJ_V1/yolov7_single_cls_2/results/3/ --exist-ok
-python detect.py --weights /data/qilei/DATASETS/WJ_V1/yolov7_roi/yolov7-wj_v1/weights/best.pt --source /data/qilei/DATASETS/WJ_V1/temp/ --project /data/qilei/DATASETS/WJ_V1/temp/results/ --exist-ok
