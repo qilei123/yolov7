@@ -151,10 +151,8 @@ if __name__ == '__main__':
     image = cv2.imread("/data/qilei/DATASETS/WJ_V1/images/3/IMG_01.00279277.0009.09195700180.jpg")
     
     result = gastroDiseaseDetector.predict(image)
-    print(result)
-    # or 
-    result = gastroDiseaseDetector(image,False)
-    print(result)
-
+    # or
+    # result = gastroDiseaseDetector(image)
+    
     gastroDiseaseDetector.show_result_on_image(image,result,'test.jpg')
 
