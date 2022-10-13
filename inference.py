@@ -26,8 +26,6 @@ class GastroDiseaseDetect():
         self.device = select_device(str(self.gpu_id))
 
     def ini_model(self, model_dir:str): #load model through model dir
-
-        #self.model = attempt_load(model_dir, map_location=self.device)  # load FP32 model
         
         self.model = torch.load(model_dir, map_location=self.device)  # load
         self.model = self.model['ema' if self.model.get('ema') else 'model'].float().fuse().eval()
