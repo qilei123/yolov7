@@ -8,4 +8,4 @@ python setup.py install
 
     /data_us/qilei/胃部病变检测模型，其中single_category.pt用于癌检测，multi_categories.pt用于多病种（溃疡，糜烂，癌等）检测；
 
-3.用例请参考test_inference.py
+4.接口参数说明请参考yolov7gastroscopy/inference.py，用例请参考test_inference.py
