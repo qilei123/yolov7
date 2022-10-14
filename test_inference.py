@@ -19,4 +19,4 @@ for i in range(100):
     print(f'({(1E3 * (t2 - t1)):.1f}ms) Inference')
 
 
-gastro_disease_detector.show_result_on_image(image,result,'test.jpg')
+gastro_disease_detector.show_result_on_image(image,result,'test_result.jpg')
