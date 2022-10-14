@@ -40,8 +40,10 @@ class GastroDiseaseDetect():
 
         self.device = select_device(str(self.gpu_id))
 
-    def ini_model(self, model_dir:str): #load model through model dir
-        
+    def ini_model(self, model_dir:str): 
+        '''
+        Load model through model dir or file IO
+        '''
         self.model = torch.load(model_dir, map_location=self.device)  # load
         self.model = self.model['ema' if self.model.get('ema') else 'model'].float().fuse().eval()
         if self.half:
