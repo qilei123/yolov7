@@ -18,6 +18,16 @@ class GastroDiseaseDetect():
     def __init__(self, img_size = 640, conf = 0.3,  
                 gpu_id = 0, nms_iou = 0.5, 
                 agnostic_nms = False, half = False): #initialize hyperparameters
+        '''
+        胃镜病变检测
+        Args:
+            img_size (int): 输入图像尺寸​
+            conf (float,0-1): 置信阈值
+            gpu_id (int):所使用的的gpu的编号
+            nms_iou (float,0-1): nms_iou阈值,用于限制重叠框的接受度
+            agnostic_nms (bool): 是否开启多类别之间的nms
+            half (bool): 模型精度选择, true for fp16, false for fp32, fp16速度略快
+        '''
         self.img_size = img_size
         self.conf = conf
         # set the gpu id
@@ -43,7 +53,7 @@ class GastroDiseaseDetect():
 
     def predict(self, image:np.ndarray, dyn_conf:float = 0.3, 
                     dyn_nms_iou:float = 0.5, formate_result:bool = True): #image is a single cv2 image
-        """
+        '''
         图像AI分析
         Args:
             image (np.ndarray): 待分析的图像​
@@ -66,7 +76,7 @@ class GastroDiseaseDetect():
             pt:为坐标；
             class_id: id number for each category
             type: 对于多别识别模型, 0:erosive 1:ulcer 2:cancer 3:others,对于单类别识别模型, 0:cancer
-        """
+        '''
         self.conf = dyn_conf
         assert self.conf>=0 and self.conf<1, "conf should be in the range [0,1)"
 
