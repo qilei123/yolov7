@@ -3,12 +3,13 @@ import numpy as np
 
 import torch
 from numpy import random
+import time
 
 from models.experimental import attempt_load
 from utils.datasets import letterbox
 from utils.general import check_img_size, non_max_suppression, scale_coords
 from utils.plots import plot_one_box
-from utils.torch_utils import select_device
+from utils.torch_utils import select_device,time_synchronized
 
 # This class is to predict diseases on gastro images.
 
@@ -138,6 +139,7 @@ class GastroDiseaseDetect():
                     obj_count += 1
 
         return formate_result
+   
 
 #use case
 if __name__ == '__main__':
@@ -147,8 +149,14 @@ if __name__ == '__main__':
     gastroDiseaseDetector.ini_model(model_dir="/data/qilei/DATASETS/WJ_V1/yolov7_single_cls_2/yolov7x-wj_v1/weights/best.pt")
     
     image = cv2.imread("/data/qilei/DATASETS/WJ_V1/images/3/IMG_01.00279277.0009.09195700180.jpg")
-    
-    result = gastroDiseaseDetector.predict(image)
+
+    for i in range(100):
+
+        t1 = time.time()
+        result = gastroDiseaseDetector.predict(image, formate_result = False)
+
+        t2 = time.time()
+        print(f'({(1E3 * (t2 - t1)):.1f}ms) Inference')
     # or
     # result = gastroDiseaseDetector(image)
     
