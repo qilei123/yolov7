@@ -40,7 +40,7 @@ class GastroDiseaseDetect():
 
         self.device = select_device(str(self.gpu_id))
 
-    def ini_model(self, model_dir:str): 
+    def ini_model(self, model_dir): 
         '''
         Load model through model dir or file IO
         '''
