@@ -120,16 +120,16 @@ class GastroDiseaseDetect():
         names = self.model.module.names if hasattr(self.model, 'module') else self.model.names
         colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
 
+        for i, det in enumerate(pred):
+            if len(det):
+                # Write results
+                for *xyxy, conf, cls in reversed(det):
+                    # Add bbox to image
+                    label = f'{names[int(cls)]} {conf:.2f}'
+                    plot_one_box(xyxy, image, label=label, color=colors[int(cls)], line_thickness=1)
         if save_img:
-            for i, det in enumerate(pred):
-                if len(det):
-                    # Write results
-                    for *xyxy, conf, cls in reversed(det):
-                        # Add bbox to image
-                        label = f'{names[int(cls)]} {conf:.2f}'
-                        plot_one_box(xyxy, image, label=label, color=colors[int(cls)], line_thickness=1)
-
             cv2.imwrite(save_img, image)
+        return image
 
     #private for result formate
     def __formate_result(self,det_result): #transfer predict results into required formate
