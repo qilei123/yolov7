@@ -1244,10 +1244,7 @@ class RepConv_OREPA(nn.Module):
         else:
             self.nonlinearity = nonlinear
 
-        if use_se:
-            self.se = SEBlock(self.out_channels, internal_neurons=self.out_channels // 16)
-        else:
-            self.se = nn.Identity()
+        self.se = nn.Identity()
 
         if deploy:
             self.rbr_reparam = nn.Conv2d(in_channels=self.in_channels, out_channels=self.out_channels, kernel_size=k, stride=s,
@@ -1491,7 +1488,7 @@ class SwinTransformerLayer(nn.Module):
             dim, window_size=(self.window_size, self.window_size), num_heads=num_heads,
             qkv_bias=qkv_bias, qk_scale=qk_scale, attn_drop=attn_drop, proj_drop=drop)
 
-        self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+        self.drop_path = nn.Identity()
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
@@ -1837,7 +1834,7 @@ class SwinTransformerLayer_v2(nn.Module):
             qkv_bias=qkv_bias, attn_drop=attn_drop, proj_drop=drop,
             pretrained_window_size=(pretrained_window_size, pretrained_window_size))
 
-        self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+        self.drop_path = nn.Identity()
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = Mlp_v2(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
