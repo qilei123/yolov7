@@ -176,7 +176,7 @@ class IDetect(nn.Module):
         return out
     
     def fuse(self):
-        print("IDetect.fuse")
+        #print("IDetect.fuse")
         # fuse ImplicitA and Convolution
         for i in range(len(self.m)):
             c1,c2,_,_ = self.m[i].weight.shape
