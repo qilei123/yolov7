@@ -1,0 +1,9 @@
+train: /home/qilei/.TEMP/TEETH3/annotations/train_1_3_crop.json 
+val: /home/qilei/.TEMP/TEETH3/annotations/test_1_3_crop.json  
+test: /home/qilei/.TEMP/TEETH3/annotations/test_1_3_crop.json  
+
+# number of classes
+nc: 1
+
+# class names
+names: [ 'Caries',]

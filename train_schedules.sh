@@ -1,0 +1,1 @@
+python train.py --workers 8 --device 0 --batch-size 8 --data data/dental.yaml --img 640 640 --cfg cfg/yolov7-mask.yaml --weights 'yolov7.pt' --name yolov7-mask_dental --hyp data/hyp.scratch.custom.yaml --project /home/qilei/.TEMP/TEETH3/yolov7/ --exist-ok --single-cls --epochs 110
