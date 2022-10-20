@@ -1,16 +1,18 @@
 from yolov7gastroscopy.inference import *
 from y7models.yolo import Model
+from y7utils.torch_utils import intersect_dicts
 import time
 import pickle
 
 def test_case():
     gastro_disease_detector = GastroDiseaseDetect(half =True)
-
-    gastro_disease_detector.ini_model(model_dir="/data/qilei/DATASETS/WJ_V1/yolov7_single_cls_2/yolov7-wj_v1/weights/best.pt")
+    #model_dir="/data/qilei/DATASETS/WJ_V1/yolov7_single_cls_2/yolov7-wj_v1/weights/best.pt"
+    model_dir = 'single_category_y7.pt'
+    gastro_disease_detector.ini_model(model_dir)
 
     image = cv2.imread("/data/qilei/DATASETS/WJ_V1/images/3/IMG_01.00279277.0009.09195700180.jpg")
 
-    for i in range(100):
+    for i in range(10):
 
         t1 = time.time()
 
@@ -24,10 +26,20 @@ def test_case():
 
     gastro_disease_detector.show_result_on_image(image,result,'test_result.jpg')
 
-if __name__ == "__main__":
-    #test_case()
-    model1 = torch.load("/data/qilei/DATASETS/WJ_V1/yolov7_single_cls_2/yolov7-wj_v1/weights/best.pt")
-    model2 = Model()
+def transfer_model(src,dst):
+    '''
+    before run this transfer function, should add the module mapping in serialization.py 
+    load_module_mapping: Dict[str, str] = {
+        # See https://github.com/pytorch/pytorch/pull/51633
+        'torch.tensor': 'torch._tensor',
+        "models.yolo": "y7models.yolo",
+        "models.common": "y7models.common"
+    }   
+    ''' 
+    model1 = torch.load(src)
+    torch.save(model1,dst) 
 
-    #model_pkl = pickle.load(open("/data/qilei/DATASETS/WJ_V1/yolov7_single_cls_2/yolov7-wj_v1/weights/best.pt", "rb"))
-    pass
+if __name__ == "__main__":
+    #transfer_model('single_category.pt','single_category_y7.pt')
+    #transfer_model('multi_categories.pt','multi_categories_y7.pt')
+    test_case()
