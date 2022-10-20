@@ -6,11 +6,11 @@ import torch
 from numpy import random
 
 
-from models.experimental import attempt_load
-from utils.datasets import letterbox
-from utils.general import check_img_size, non_max_suppression, scale_coords
-from utils.plots import plot_one_box
-from utils.torch_utils import select_device
+from y7models.experimental import attempt_load
+from y7utils.datasets import letterbox
+from y7utils.general import check_img_size, non_max_suppression, scale_coords
+from y7utils.plots import plot_one_box
+from y7utils.torch_utils import select_device
 
 # This class is to predict diseases on gastroscopy images.
 
