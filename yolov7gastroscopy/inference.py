@@ -94,9 +94,10 @@ class GastroDiseaseDetect():
         img = img.half() if self.half else img.float()
         img /= 255.0
         if img.ndimension() == 3:
-            img = img.unsqueeze(0)        
+            img = img.unsqueeze(0)   
 
-        pred = self.model(img)[0]
+        with torch.no_grad():  #avoid calculating gradients when inferencing, or gpu memory may leak
+            pred = self.model(img)[0]
         
         pred = non_max_suppression(pred, self.conf, self.nms_iou, agnostic=self.agnostic_nms)
         

@@ -6,13 +6,14 @@ import pickle
 
 def test_case():
     gastro_disease_detector = GastroDiseaseDetect(half =True)
-    #model_dir="/data/qilei/DATASETS/WJ_V1/yolov7_single_cls_2/yolov7-wj_v1/weights/best.pt"
-    model_dir = 'single_category_y7.pt'
+
+    #model_dir = 'single_category_y7.pt'
+    model_dir = 'multi_categories_y7.pt'
     gastro_disease_detector.ini_model(model_dir)
 
     image = cv2.imread("/data/qilei/DATASETS/WJ_V1/images/3/IMG_01.00279277.0009.09195700180.jpg")
 
-    for i in range(10):
+    while True:
 
         t1 = time.time()
 
