@@ -63,8 +63,7 @@ def process_videos():
 
         images_folder = os.path.join(report_images_dir,video_name.replace('.mp4',''))
 
-        if not os.path.exists(images_folder):
-            os.makedirs(images_folder)
+        os.makedirs(images_folder,exist_ok=True)
 
         fps = video.get(cv2.CAP_PROP_FPS)
 
@@ -107,6 +106,38 @@ def process_videos():
 def extract_frames():
     org_videos_dir = '/data3/xiaolong_liang/data/videos_2022/202201_r06/gastroscopy/'
     result_videos_dir = '/data2/qilei_chen/wj_fp_images1/'
+
+    record_list = glob.glob(os.path.join(result_videos_dir,"*.txt"))
+
+    for record_file in record_list:
+
+        print(record_file)
+
+        record = open(record_file)
+
+        org_video = cv2.VideoCapture(os.path.join(org_videos_dir,os.path.basename(record_file.replace(".txt",""))))
+
+        result_video = cv2.VideoCapture(record_file.replace("txt","avi"))
+
+        frame_id = record.readline()
+
+        while frame_id:
+            frame_id = int(frame_id)
+            
+            def read_and_save_frame(cap,save_dir,folder,frame_id):
+                cap.set(cv2.CAP_PROP_POS_FRAMES,frame_id)
+                suc, org_frame = cap.read()
+                os.makedirs(os.path.join(save_dir.replace(".mp4.txt",""),folder),exist_ok=True)
+                if suc:
+                    cv2.imwrite(os.path.join(save_dir.replace(".mp4.txt",""),folder,str(frame_id).zfill(10)+'.jpg'),org_frame)
+            
+            #save for the original image
+            read_and_save_frame(org_video,record_file,'org',frame_id)
+
+            #save for the result image
+            read_and_save_frame(result_video,record_file,'result',frame_id)
+
+            frame_id = record.readline()
 
 if __name__ == '__main__':
     #process_videos()
