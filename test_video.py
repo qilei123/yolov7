@@ -139,6 +139,51 @@ def extract_frames():
 
             frame_id = record.readline()
 
+
+def reprocess_images():
+    
+
+    gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=0)
+
+    gastro_disease_detector.ini_model(model_dir="/data1/qilei_chen/DEVELOPMENTS/yolov7/out/WJ_V1_with_fp/yolov7-wj_v1_with_fp/weights/best.pt")
+
+    folder_list = glob.glob('/data2/qilei_chen/wj_fp_images1/images/*')
+
+    for folder_dir in folder_list:
+        print(folder_dir)
+        images_folder = os.path.join(folder_dir,'org')
+        reprocess_folder = os.path.join(folder_dir,'reprocess')
+        os.makedirs(reprocess_folder,exist_ok=True)
+
+        images_list = sorted(glob.glob(os.path.join(images_folder,'*.jpg')))
+        
+        roi = None
+        
+        for image_dir in images_list:
+            image = cv2.imread(image_dir)
+
+            if roi==None:
+                _, roi = CropImg(image)
+            else:
+                image = CropImg(image,roi)
+
+            result = gastro_disease_detector.predict(image, formate_result = False)
+            
+            report = False  
+
+            for i, det in enumerate(result):
+                if len(det):
+                    # Write results
+                    for *xyxy, conf, cls in reversed(det):
+                        if int(cls)==0:
+                            report = True
+
+            if report:
+                image = gastro_disease_detector.show_result_on_image(image,result,None) 
+                cv2.imwrite(os.path.join(reprocess_folder,os.path.basename(image_dir)),image)
+
 if __name__ == '__main__':
     #process_videos()
-    extract_frames()
+    #extract_frames()
+    reprocess_images()
+    pass
