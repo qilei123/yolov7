@@ -4,7 +4,7 @@ val: /data2/zzhang/annotation/erosiveulcer_fine/test0928.json
 test: /data2/zzhang/annotation/erosiveulcer_fine/test0928.json
 
 # number of classes
-nc: 3
+nc: 2
 
 # class names
-names: [ 'low_level','high_level','cancer']
+names: [ 'low_level','others']

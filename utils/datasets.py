@@ -708,29 +708,62 @@ class LoadCOCO(LoadImagesAndLabels):
         # annotations: path = data_root/annotations/train.json; here path is the dir for annotation file
         # images: data_root/images/*
         coco = COCO(path)
-        data_root = Path(path).parent.parent
-        images_root = os.path.join(data_root,'images')
+        data_root = Path(path).parent
+        images_root = os.path.join(data_root,'train/images')
         self.img_files =  []
         self.labels = [] #(img,cat,x,y,w,h)
         self.shapes = []
         self.segments = []
         self.obbs = []
-        self.cls_names = coco.loadCats()
-        if self.cls_names:
-            select_cats_id = coco.getCatIds(catNms=self.cls_names)
-        else:
-            select_cats_id = coco.getCatIds()
 
         self.cat_id_map = {}
-        for new_cat_id,cat_id in enumerate(select_cats_id):
-            self.cat_id_map[cat_id] = new_cat_id
+
+        strategy=1
+        test_mode = True
+        if 'train' in os.path.basename(path):
+            test_mode = False
+
+        if strategy==1:#use others only
+            self.cls_names = ['low_level','others']
+            if self.cls_names:
+                select_cats_id = coco.getCatIds(catNms=self.cls_names)
+            else:
+                select_cats_id = coco.getCatIds()
+
+            for new_cat_id,cat_id in enumerate(select_cats_id):
+                self.cat_id_map[cat_id] = new_cat_id
+
+            if test_mode:
+                self.cat_id_map = {3:0}
+            else:
+                self.cat_id_map = {3:1,5:0}
+
+        elif strategy==2:#use all others as fp
+            self.cls_names = ['low_level','others','erosive','ulcer','hemorrhage']
+            if self.cls_names:
+                select_cats_id = coco.getCatIds(catNms=self.cls_names)
+            else:
+                select_cats_id = coco.getCatIds()
+
+            # low_level is 0, all others are 1
+            for new_cat_id,cat_id in enumerate(select_cats_id):
+                self.cat_id_map[cat_id] = new_cat_id
+
+            if test_mode:
+                self.cat_id_map = {1:1,2:1,3:0}
+            else:
+                self.cat_id_map = {1:1,2:1,3:1,4:1,5:0}
+            
         
         for ImgId in coco.getImgIds():
 
             img = coco.loadImgs([ImgId])[0]
+            if not os.path.exists(os.path.join(images_root,img['file_name'])):
+                print(os.path.join(images_root,img['file_name']))
+                continue
             
-            assert img['width'] == img['roi'][2]-img["roi"][0], "annotation error"
-            assert img['height'] == img['roi'][3]-img["roi"][1], "annotation error"
+            #assert img['width'] == img['roi'][2]-img["roi"][0], "annotation error"
+            #assert img['height'] == img['roi'][3]-img["roi"][1], "annotation error"
 
             img_width,img_height = img['width'],img['height']
 
@@ -755,33 +788,32 @@ class LoadCOCO(LoadImagesAndLabels):
                     #seg.append(self.cat_id_map[ann['category_id']])
 
                     #ann_segmentation_minrect = seg2minrect(ann['segmentation'][0])
-                    
-                    for coord_index,coord in enumerate(ann['segmentation'][0]):
-                        if coord_index%2==1:
-                            
-                            #box.append(ann_segmentation_minrect[coord_index-1]/img_width)
-                            #box.append(coord/img_height)
+                    if 'segmentation' in ann and len(ann['segmentation']):
+                        for coord_index,coord in enumerate(ann['segmentation'][0]):
+                            if coord_index%2==1:
+                                
+                                #box.append(ann_segmentation_minrect[coord_index-1]/img_width)
+                                #box.append(coord/img_height)
 
-                            seg.append(ann['segmentation'][0][coord_index-1]/img_width)
-                            seg.append(coord/img_height)
+                                seg.append(ann['segmentation'][0][coord_index-1]/img_width)
+                                seg.append(coord/img_height)
 
-                            #box.append(ann_segmentation_minrect[coord_index-1])
-                            #box.append(coord)
+                                #box.append(ann_segmentation_minrect[coord_index-1])
+                                #box.append(coord)
 
-                            #seg.append(ann['segmentation'][0][coord_index-1])
-                            #seg.append(coord)
+                                #seg.append(ann['segmentation'][0][coord_index-1])
+                                #seg.append(coord)
                     
                     boxes.append(box)
                     segs.append(np.array(seg, dtype=np.float32).reshape(-1, 2))
 
-
-            self.shapes.append((img_width,img_height))
-            self.img_files.append(os.path.join(images_root,img['file_name']))
-            self.segments.append(segs)
             if len(boxes)>0:
                 self.labels.append(np.array(boxes, dtype=np.float64))
-            else:
-                self.labels.append(np.zeros((0, 5), dtype=np.float32))
+                self.shapes.append((img_width,img_height))
+                self.segments.append(segs)
+                self.img_files.append(os.path.join(images_root,img['file_name']))
+            #else: #这里先不考虑空图片
+            #    self.labels.append(np.zeros((0, 5), dtype=np.float32))
         #print(len(self.img_files))
         # Read cache
         #[cache.pop(k) for k in ('hash', 'version', 'msgs')]  # remove items
@@ -1407,7 +1439,7 @@ def random_perspective(img, targets=(), segments=(), degrees=10, translate=.1, s
     # Transform label coordinates
     n = len(targets)
     if n:
-        use_segments = any(x.any() for x in segments)
+        use_segments = all(x.any() for x in segments)
         new = np.zeros((n, 4))
         if use_segments:  # warp segments
             segments = resample_segments(segments)  # upsample
