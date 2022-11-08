@@ -695,7 +695,8 @@ class Model(nn.Module):
         for m in self.model.modules():
             if isinstance(m, RepConv):
                 #print(f" fuse_repvgg_block")
-                m.fuse_repvgg_block()
+                #m.fuse_repvgg_block()
+                pass
             elif isinstance(m, RepConv_OREPA):
                 #print(f" switch_to_deploy")
                 m.switch_to_deploy()
