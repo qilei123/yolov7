@@ -7,8 +7,8 @@ import pickle
 def test_case():
     gastro_disease_detector = GastroDiseaseDetect(half =True)
 
-    #model_dir = 'single_category_y7.pt'
-    model_dir = 'multi_categories_y7.pt'
+    model_dir = 'single_category_y7.pt'
+    #model_dir = 'multi_categories_y7.pt'
     gastro_disease_detector.ini_model(model_dir)
 
     image = cv2.imread("/data/qilei/DATASETS/WJ_V1/images/3/IMG_01.00279277.0009.09195700180.jpg")
@@ -18,6 +18,7 @@ def test_case():
         t1 = time.time()
 
         result = gastro_disease_detector.predict(image, formate_result = False)
+        
         # or
         # result = gastroDiseaseDetector(image, formate_result = False)
 
