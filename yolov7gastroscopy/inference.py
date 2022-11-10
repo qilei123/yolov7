@@ -113,7 +113,7 @@ class GastroDiseaseDetect():
     def __call__(self, image: np.ndarray,formate_result:bool = True):
         return self.predict(image, formate_result = formate_result)
 
-    def show_result_on_image(self, image, pred, save_img:str = ''):
+    def show_result_on_image(self, image, pred, save_img:str = '',visible_ids:list = []):
         gn = torch.tensor(image.shape)[[1, 0, 1, 0]]  # normalization gain whwh
 
         # Get names and colors
@@ -126,8 +126,9 @@ class GastroDiseaseDetect():
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
                     # Add bbox to image
-                    label = f'{names[int(cls)]} {conf:.2f}'
-                    plot_one_box(xyxy, image, label=label, color=colors[int(cls)], line_thickness=1)
+                    if len(visible_ids)==0 or (len(visible_ids) and int(cls) in visible_ids):
+                        label = f'{names[int(cls)]} {conf:.2f}'
+                        plot_one_box(xyxy, image, label=label, color=colors[int(cls)], line_thickness=1)
         if save_img:
             cv2.imwrite(save_img, image)
 
