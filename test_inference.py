@@ -5,7 +5,7 @@ import time
 import pickle
 
 def test_case():
-    gastro_disease_detector = GastroDiseaseDetect(half =False)
+    gastro_disease_detector = GastroDiseaseDetect(half =True)
 
     #model_dir = 'single_category_y7.pt'
     model_dir = 'multi_categories_y7.pt'
