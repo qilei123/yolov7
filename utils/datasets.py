@@ -717,13 +717,15 @@ class LoadCOCO(LoadImagesAndLabels):
 
         self.cat_id_map = {}
 
+        instance_n = 0
+
         strategy=2
         test_mode = True
         if 'train' in os.path.basename(path):
             test_mode = False
 
         if strategy==1:#use others only
-            self.cls_names = ['low_level','others']
+            self.cls_names = ['cancer','others']
             if self.cls_names:
                 select_cats_id = coco.getCatIds(catNms=self.cls_names)
             else:
@@ -738,7 +740,7 @@ class LoadCOCO(LoadImagesAndLabels):
                 self.cat_id_map = {3:1,5:0}
 
         elif strategy==2:#use all others as fp
-            self.cls_names = ['low_level','others','erosive','ulcer','hemorrhage']
+            self.cls_names = ['cancer','others','erosive','ulcer','hemorrhage']
             if self.cls_names:
                 select_cats_id = coco.getCatIds(catNms=self.cls_names)
             else:
@@ -807,6 +809,7 @@ class LoadCOCO(LoadImagesAndLabels):
                     segs.append(np.array(seg, dtype=np.float32).reshape(-1, 2))
 
             if len(boxes)>0:
+                instance_n+=len(boxes)
                 self.labels.append(np.array(boxes, dtype=np.float64))
                 self.shapes.append((img_width,img_height))
                 self.segments.append(segs)
@@ -886,6 +889,7 @@ class LoadCOCO(LoadImagesAndLabels):
                             segs.append(np.array(seg, dtype=np.float32).reshape(-1, 2))
 
                     if len(boxes)>0:
+                        instance_n+=len(boxes)
                         self.labels.append(np.array(boxes, dtype=np.float64))
                         self.shapes.append((img_width,img_height))
                         self.segments.append(segs)
@@ -947,6 +951,7 @@ class LoadCOCO(LoadImagesAndLabels):
                                 segs.append(np.array(seg, dtype=np.float32).reshape(-1, 2))
 
                         if len(boxes)>0:
+                            instance_n+=len(boxes)
                             self.labels.append(np.array(boxes, dtype=np.float64))
                             self.shapes.append((img_width,img_height))
                             self.segments.append(segs)
@@ -1017,6 +1022,7 @@ class LoadCOCO(LoadImagesAndLabels):
                             segs.append(np.array(seg, dtype=np.float32).reshape(-1, 2))
 
                     if len(boxes)>0:
+                        instance_n+=len(boxes)
                         self.labels.append(np.array(boxes, dtype=np.float64))
                         self.shapes.append((img_width,img_height))
                         self.segments.append(segs)
@@ -1079,6 +1085,7 @@ class LoadCOCO(LoadImagesAndLabels):
                                 segs.append(np.array(seg, dtype=np.float32).reshape(-1, 2))
 
                         if len(boxes)>0:
+                            instance_n+=len(boxes)
                             self.labels.append(np.array(boxes, dtype=np.float64))
                             self.shapes.append((img_width,img_height))
                             self.segments.append(segs)
@@ -1093,6 +1100,7 @@ class LoadCOCO(LoadImagesAndLabels):
         self.batch = bi  # batch index of image
         self.n = n
         self.indices = range(n)
+        print(instance_n)
 
         # Update labels
         include_class = []  # filter labels to include only these classes (optional)

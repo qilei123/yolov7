@@ -7,4 +7,4 @@ test: /data2/zzhang/annotation/erosiveulcer_fine/test0928.json
 nc: 2
 
 # class names
-names: [ 'low_level','others']
+names: [ 'cancer','others']
