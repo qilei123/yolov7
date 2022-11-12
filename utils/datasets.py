@@ -1091,6 +1091,78 @@ class LoadCOCO(LoadImagesAndLabels):
                             self.segments.append(segs)
                             self.img_files.append(image_dir)
 
+        if True: # add the 协和2015-2021年数据_append data
+            append_tp_datas = ["/data2/qilei_chen/DATA/WJ_V1/v1_append_cancer",
+                            "/data2/qilei_chen/DATA/WJ_V1/v1_append_high_level"]
+
+            select_cats_id = [3,5]
+            self.cat_id_map = {3:0,5:0}
+            if test_mode:
+                pass
+            else:
+                for append_data in append_tp_datas:
+                    images_root = append_data
+                    coco = COCO(os.path.join(images_root,'annotations','crop_instances_default.json'))
+                    for ImgId in coco.getImgIds():
+
+                        img = coco.loadImgs([ImgId])[0]
+                        image_dir = os.path.join(images_root,'crop_images',img['file_name'])
+                        if not os.path.exists(image_dir):
+                            print(image_dir)
+                            continue
+                        
+                        #assert img['width'] == img['roi'][2]-img["roi"][0], "annotation error"
+                        #assert img['height'] == img['roi'][3]-img["roi"][1], "annotation error"
+
+                        img_width,img_height = img['width'],img['height']
+
+                        annIds =  coco.getAnnIds(ImgId)
+                        anns = coco.loadAnns(annIds)
+
+                        boxes = []
+                        segs = []
+                        for ann in anns:
+                            if ann['category_id'] in select_cats_id:
+                                
+                                box = [self.cat_id_map[ann['category_id']],
+                                        (ann['bbox'][0]+ann['bbox'][2]/2)/img_width,
+                                        (ann['bbox'][1]+ann['bbox'][3]/2)/img_height,
+                                        ann['bbox'][2]/img_width,
+                                        ann['bbox'][3]/img_height]
+                                '''
+                                box = []
+                                box.append(cat_id_map[ann['category_id']])
+                                '''
+                                seg = []
+                                #seg.append(self.cat_id_map[ann['category_id']])
+
+                                #ann_segmentation_minrect = seg2minrect(ann['segmentation'][0])
+                                if 'segmentation' in ann and len(ann['segmentation']):
+                                    for coord_index,coord in enumerate(ann['segmentation'][0]):
+                                        if coord_index%2==1:
+                                            
+                                            #box.append(ann_segmentation_minrect[coord_index-1]/img_width)
+                                            #box.append(coord/img_height)
+
+                                            seg.append(ann['segmentation'][0][coord_index-1]/img_width)
+                                            seg.append(coord/img_height)
+
+                                            #box.append(ann_segmentation_minrect[coord_index-1])
+                                            #box.append(coord)
+
+                                            #seg.append(ann['segmentation'][0][coord_index-1])
+                                            #seg.append(coord)
+                                
+                                boxes.append(box)
+                                segs.append(np.array(seg, dtype=np.float32).reshape(-1, 2))
+
+                        if len(boxes)>0:
+                            instance_n+=len(boxes)
+                            self.labels.append(np.array(boxes, dtype=np.float64))
+                            self.shapes.append((img_width,img_height))
+                            self.segments.append(segs)
+                            self.img_files.append(image_dir)
+        
         self.shapes = np.array(self.shapes, dtype=np.float64)
         #self.img_files = list(cache.keys())  # update
         #self.label_files = img2label_paths(cache.keys())  # update
