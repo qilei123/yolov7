@@ -5,13 +5,14 @@ import time
 import pickle
 
 def test_case():
-    gastro_disease_detector = GastroDiseaseDetect(half =True)
+    gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=1)
 
     #model_dir = 'single_category_y7.pt'
-    model_dir = 'multi_categories_y7.pt'
+    #model_dir = 'multi_categories_y7.pt'
+    model_dir = 'binary_categories_y7.pt'
     gastro_disease_detector.ini_model(model_dir)
 
-    image = cv2.imread("/data/qilei/DATASETS/WJ_V1/images/3/IMG_01.00279277.0009.09195700180.jpg")
+    image = cv2.imread("_20220616_162654_01_r02_olbs290_w_15848.jpg")
 
     while True:
 
@@ -26,7 +27,7 @@ def test_case():
         print(f'({(1E3 * (t2 - t1)):.1f}ms) Inference')
 
 
-    gastro_disease_detector.show_result_on_image(image,result,'test_result.jpg')
+        gastro_disease_detector.show_result_on_image(image,result,'test_result.jpg')
 
 def transfer_model(src,dst):
     '''
@@ -44,4 +45,5 @@ def transfer_model(src,dst):
 if __name__ == "__main__":
     #transfer_model('single_category.pt','single_category_y7.pt')
     #transfer_model('multi_categories.pt','multi_categories_y7.pt')
+    #transfer_model('out/WJ_V1_with_mfp1-3/yolov7-wj_v1_with_fp/weights/best.pt','binary_categories_y7.pt')
     test_case()
