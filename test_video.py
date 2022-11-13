@@ -222,11 +222,11 @@ def process_videos_xiangya():
 
     gastro_disease_detector = GastroDiseaseDetect(half =False,gpu_id=0)
 
-    train_dataset_name = 'WJ_V1_with_mfp1'
+    train_dataset_name = 'WJ_V1_with_mfp1-3'
 
-    gastro_disease_detector.ini_model(model_dir="/data1/qilei_chen/DEVELOPMENTS/yolov7/out/WJ_V1_with_mfp1/yolov7-wj_v1_with_fp/weights/best.pt")
+    gastro_disease_detector.ini_model(model_dir="out/"+train_dataset_name+"/yolov7-wj_v1_with_fp/weights/best.pt")
 
-    videos_dir = '/data2/qilei_chen/DATA/2021_2022gastro_cancers/2021_videos/'
+    videos_dir = '/data2/qilei_chen/DATA/2021_2022gastro_cancers/2022_videos/'
 
     report_images_dir = os.path.join(videos_dir,train_dataset_name)
 
@@ -234,11 +234,11 @@ def process_videos_xiangya():
 
     os.makedirs(report_videos_dir,exist_ok=True)
 
-    video_list = glob.glob(os.path.join(videos_dir,"*.mp4"))
+    video_list = sorted(glob.glob(os.path.join(videos_dir,"*.mp4")))
 
-    video_list = parse_periods(open(os.path.join(videos_dir,'periods.txt')))
+    #video_list = parse_periods(open(os.path.join(videos_dir,'periods.txt')))
 
-    for video_dir in video_list:
+    for video_dir in video_list[10:]:
         video_dir = os.path.join(videos_dir,video_dir)
 
         print(video_dir)
@@ -249,9 +249,9 @@ def process_videos_xiangya():
 
         images_folder = os.path.join(report_images_dir,video_name.replace('.mp4',''))
         org_images_folder = os.path.join(images_folder,'org')
-        os.makedirs(org_images_folder,exist_ok=True)
+        #os.makedirs(org_images_folder,exist_ok=True)
         process_images_folder = os.path.join(images_folder,'process')
-        os.makedirs(process_images_folder,exist_ok=True)
+        #os.makedirs(process_images_folder,exist_ok=True)
 
         fps = video.get(cv2.CAP_PROP_FPS)
 
@@ -284,7 +284,7 @@ def process_videos_xiangya():
                     for *xyxy, conf, cls in reversed(det):
                         if int(cls)==0:
                             report = True
-            report  = report and checkPeriods(video_list[video_name],fps,int(frame_id))
+            #report  = report and checkPeriods(video_list[video_name],fps,int(frame_id))
             if report:
                 #frame_id_report_log.write(str(frame_id)+'\n')
                 #cv2.imwrite(os.path.join(org_images_folder,str(frame_id).zfill(10)+'.jpg'),frame)
@@ -401,6 +401,6 @@ if __name__ == '__main__':
     #extract_frames()
     #reprocess_images()
     #print(parse_periods())
-    #process_videos_xiangya()
-    generate_fp_coco()
+    process_videos_xiangya()
+    #generate_fp_coco()
     pass
