@@ -760,7 +760,7 @@ class LoadCOCO(LoadImagesAndLabels):
 
             img = coco.loadImgs([ImgId])[0]
             if not os.path.exists(os.path.join(images_root,img['file_name'])):
-                print(os.path.join(images_root,img['file_name']))
+                #print(os.path.join(images_root,img['file_name']))
                 continue
             
             #assert img['width'] == img['roi'][2]-img["roi"][0], "annotation error"
