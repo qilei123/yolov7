@@ -28,7 +28,7 @@ from utils.autoanchor import check_anchors
 from utils.datasets import create_dataloader
 from utils.general import labels_to_class_weights, increment_path, labels_to_image_weights, init_seeds, \
     fitness, strip_optimizer, get_latest_run, check_dataset, check_file, check_git_status, check_img_size, \
-    check_requirements, print_mutation, set_logging, one_cycle, colorstr
+    check_requirements, print_mutation, set_logging, one_cycle, colorstr, fitness_recall
 from utils.google_utils import attempt_download
 from utils.loss import ComputeLoss, ComputeLossOTA
 from utils.plots import plot_images, plot_labels, plot_results, plot_evolution
@@ -443,7 +443,8 @@ def train(hyp, opt, device, tb_writer=None):
                     wandb_logger.log({tag: x})  # W&B
 
             # Update best mAP
-            fi = fitness(np.array(results).reshape(1, -1))  # weighted combination of [P, R, mAP@.5, mAP@.5-.95]
+            #fi = fitness(np.array(results).reshape(1, -1))  # weighted combination of [P, R, mAP@.5, mAP@.5-.95]
+            fi = fitness_recall(np.array(results).reshape(1, -1))
             if fi > best_fitness:
                 best_fitness = fi
             wandb_logger.end_epoch(best_result=best_fitness == fi)
