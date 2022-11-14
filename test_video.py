@@ -222,7 +222,7 @@ def process_videos_xiangya():
 
     gastro_disease_detector = GastroDiseaseDetect(half =False,gpu_id=0)
 
-    train_dataset_name = 'WJ_V1_with_mfp1-3'
+    train_dataset_name = 'WJ_V1_with_mfp2-0'
 
     gastro_disease_detector.ini_model(model_dir="out/"+train_dataset_name+"/yolov7-wj_v1_with_fp/weights/best.pt")
 
@@ -238,7 +238,7 @@ def process_videos_xiangya():
 
     #video_list = parse_periods(open(os.path.join(videos_dir,'periods.txt')))
 
-    for video_dir in video_list[10:]:
+    for video_dir in video_list[9:]:
         video_dir = os.path.join(videos_dir,video_dir)
 
         print(video_dir)
