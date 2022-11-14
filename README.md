@@ -12,6 +12,6 @@ v1: /data_us/qilei/胃部病变检测模型，其中single_category.pt用于癌�
 
 ***update!***
 
-v2: /data_us/qilei/胃部病变检测模型/binary_categories_y7.pt；该模型输出结果为二分类，0代表癌变（高风险区域），1代表其他类别区域；默认置信度为0.3，可在0.3附近进行置信度调整；
+v2: /data_us/qilei/胃部病变检测模型/binary_categories_y7-3-0.pt；该模型输出结果为二分类，0代表癌变（高风险区域），1代表其他类别区域；默认置信度为0.3，可在0.3附近进行置信度调整；
 
 4.接口参数说明请参考yolov7gastroscopy/inference.py，用例请参考test_inference.py

@@ -77,7 +77,8 @@ class GastroDiseaseDetect():
             score:为该分数，分数越高表示可能性越大；
             pt:为坐标；
             class_id: id number for each category
-            type: 对于多别识别模型, 0:erosive 1:ulcer 2:others 3:hemorrhage, 4:cancer,对于单类别识别模型, 0:cancer
+            type: v1:对于多别识别模型, 0:erosive 1:ulcer 2:others 3:hemorrhage, 4:cancer,对于单类别识别模型, 0:cancer
+                  v2:二分类识别模型, 0:cancer(高风险) 1:others(除了高风险以外的其他区域)
         '''
         self.conf = dyn_conf
         assert self.conf>=0 and self.conf<1, "conf should be in the range [0,1)"
