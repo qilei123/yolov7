@@ -9,13 +9,13 @@ def test_case():
 
     #model_dir = 'single_category_y7.pt'
     #model_dir = 'multi_categories_y7.pt'
-    model_dir = 'binary_categories_y7.pt'
+    #model_dir = 'binary_categories_y7-1-3.pt'
+    model_dir = 'binary_categories_y7-3-0.pt'
     gastro_disease_detector.ini_model(model_dir)
 
-    image = cv2.imread("_20220616_162654_01_r02_olbs290_w_15848.jpg")
-
     while True:
-
+        image = cv2.imread("_20220616_162654_01_r02_olbs290_w_15848.jpg")
+        
         t1 = time.time()
 
         result = gastro_disease_detector.predict(image, formate_result = False)
@@ -45,5 +45,6 @@ def transfer_model(src,dst):
 if __name__ == "__main__":
     #transfer_model('single_category.pt','single_category_y7.pt')
     #transfer_model('multi_categories.pt','multi_categories_y7.pt')
-    #transfer_model('out/WJ_V1_with_mfp1-3/yolov7-wj_v1_with_fp/weights/best.pt','binary_categories_y7.pt')
+    #transfer_model('out/WJ_V1_with_mfp1-3/yolov7-wj_v1_with_fp/weights/best.pt','binary_categories_y7-1-3.pt')
     test_case()
+    pass
