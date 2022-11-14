@@ -827,6 +827,17 @@ class LoadCOCO(LoadImagesAndLabels):
                             "/data2/qilei_chen/DATA/2021_2022gastro_cancers/2021_2",
                             "/data2/qilei_chen/DATA/2021_2022gastro_cancers/2022_1",
                             "/data2/qilei_chen/DATA/2021_2022gastro_cancers/2022_2"]
+            
+            append_more_from_videos = ['20220608_120950_01_r02_olbs290_w',
+                                        '20220616_162654_01_r02_olbs290_w',
+                                        '20220621_121616_01_r09_olbs290_w',
+                                        '20220627_174521_01_r09_olbs290_w']
+            
+            def is_append_more(img_name):
+                for append_more_from_video in append_more_from_videos:
+                    if append_more_from_video in img_name:
+                        return True
+            
             if strategy==1:
                 select_cats_id = [1]
                 self.cat_id_map = {1:0}
@@ -843,6 +854,8 @@ class LoadCOCO(LoadImagesAndLabels):
                         print(os.path.join(images_root,"crop_images",img['file_name']))
                         continue
                     
+                    if is_append_more(os.path.basename(img['file_name'])):
+                        continue
                     #assert img['width'] == img['roi'][2]-img["roi"][0], "annotation error"
                     #assert img['height'] == img['roi'][3]-img["roi"][1], "annotation error"
 
@@ -895,7 +908,7 @@ class LoadCOCO(LoadImagesAndLabels):
                         self.segments.append(segs)
                         self.img_files.append(os.path.join(images_root,"crop_images",img['file_name']))
             else:
-                for append_data in append_datas[:3]*2: #+append_datas[:3]: # repeat the data in the training process
+                for append_data in append_datas[:4]*2: #+append_datas[:3]: # repeat the data in the training process
                     images_root = append_data
                     coco = COCO(os.path.join(images_root,'annotations/crop_instances_default.json'))
                     for ImgId in coco.getImgIds():
@@ -904,6 +917,9 @@ class LoadCOCO(LoadImagesAndLabels):
                         if not os.path.exists(os.path.join(images_root,"crop_images",img['file_name'])):
                             print(os.path.join(images_root,"crop_images",img['file_name']))
                             continue
+                        
+                        if (append_data==append_datas[3]) and (not is_append_more(os.path.basename(img['file_name']))):
+                            continue                        
                         
                         #assert img['width'] == img['roi'][2]-img["roi"][0], "annotation error"
                         #assert img['height'] == img['roi'][3]-img["roi"][1], "annotation error"
