@@ -222,7 +222,7 @@ def process_videos_xiangya():
 
     gastro_disease_detector = GastroDiseaseDetect(half =False,gpu_id=2)
 
-    train_dataset_name = 'WJ_V1_with_mfp3-0'
+    train_dataset_name = 'WJ_V1_with_mfp3-1'
 
     gastro_disease_detector.ini_model(model_dir="out/"+train_dataset_name+"/yolov7-wj_v1_with_fp/weights/best.pt")
 
