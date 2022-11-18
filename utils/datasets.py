@@ -1188,7 +1188,9 @@ class LoadCOCO(LoadImagesAndLabels):
         self.batch = bi  # batch index of image
         self.n = n
         self.indices = range(n)
-        print(instance_n)
+        
+        print('Images number:{}!'.format(instance_n))
+        print('Instances number:{}!'.format(instance_n))
 
         # Update labels
         include_class = []  # filter labels to include only these classes (optional)
