@@ -821,8 +821,8 @@ class LoadCOCO(LoadImagesAndLabels):
         #[cache.pop(k) for k in ('hash', 'version', 'msgs')]  # remove items
         #labels, shapes, self.segments = zip(*cache.values())
         #self.labels = list(labels)
-        if True:
-            #load tp dataset from 2021 and 2022 xiangya videos
+        if True:#load tp dataset from 2021 and 2022 xiangya videos
+            
             append_datas = ["/data2/qilei_chen/DATA/2021_2022gastro_cancers/2021_1",
                             "/data2/qilei_chen/DATA/2021_2022gastro_cancers/2021_2",
                             "/data2/qilei_chen/DATA/2021_2022gastro_cancers/2022_1",
@@ -973,8 +973,7 @@ class LoadCOCO(LoadImagesAndLabels):
                             self.segments.append(segs)
                             self.img_files.append(os.path.join(images_root,"crop_images",img['file_name']))
             
-        if True:
-            #load the fp data from 2021 and 2022 xiangya videos
+        if True:#load the fp data from 2021 and 2022 xiangya videos
             append_fp_datas = ["/data2/qilei_chen/DATA/2021_2022gastro_cancers/2021_videos",
                             "/data2/qilei_chen/DATA/2021_2022gastro_cancers/2022_videos",
                             "/data2/qilei_chen/DATA/2021_2022gastro_cancers/2022_videos"]
@@ -1178,7 +1177,104 @@ class LoadCOCO(LoadImagesAndLabels):
                             self.shapes.append((img_width,img_height))
                             self.segments.append(segs)
                             self.img_files.append(image_dir)
-        
+
+        if True: #将1123号之前搜集到的所有数据再次进行训练
+            if test_mode:
+                pass
+            else:
+                ann_path = '/data2/zzhang/annotation/erosiveulcer_fine/trainfp1123.json'
+                coco = COCO(ann_path)
+                data_root = Path(ann_path).parent
+                images_root = os.path.join(data_root,'train/images')
+
+                if strategy==1:#use others only
+                    self.cls_names = ['cancer','others']
+                    if self.cls_names:
+                        select_cats_id = coco.getCatIds(catNms=self.cls_names)
+                    else:
+                        select_cats_id = coco.getCatIds()
+
+                    for new_cat_id,cat_id in enumerate(select_cats_id):
+                        self.cat_id_map[cat_id] = new_cat_id
+
+                    if test_mode:
+                        self.cat_id_map = {3:0}
+                    else:
+                        self.cat_id_map = {3:1,5:0}
+
+                elif strategy==2:#use all others as fp
+                    self.cls_names = ['erosive','ulcer','others','hemorrhage','cancer','low','high']
+                    if self.cls_names:
+                        select_cats_id = coco.getCatIds(catNms=self.cls_names)
+                    else:
+                        select_cats_id = coco.getCatIds()
+
+                    # low_level is 0, all others are 1
+                    for new_cat_id,cat_id in enumerate(select_cats_id):
+                        self.cat_id_map[cat_id] = new_cat_id
+
+
+                    self.cat_id_map = {1:1,2:1,3:1,4:1,5:0,6:0,7:0}
+                    
+                for ImgId in coco.getImgIds():
+
+                    img = coco.loadImgs([ImgId])[0]
+                    if not os.path.exists(os.path.join(images_root,img['file_name'])):
+                        #print(os.path.join(images_root,img['file_name']))
+                        continue
+                    
+                    #assert img['width'] == img['roi'][2]-img["roi"][0], "annotation error"
+                    #assert img['height'] == img['roi'][3]-img["roi"][1], "annotation error"
+
+                    img_width,img_height = img['width'],img['height']
+
+                    annIds =  coco.getAnnIds(ImgId)
+                    anns = coco.loadAnns(annIds)
+
+                    boxes = []
+                    segs = []
+                    for ann in anns:
+                        if ann['category_id'] in select_cats_id:
+                            
+                            box = [self.cat_id_map[ann['category_id']],
+                                    (ann['bbox'][0]+ann['bbox'][2]/2)/img_width,
+                                    (ann['bbox'][1]+ann['bbox'][3]/2)/img_height,
+                                    ann['bbox'][2]/img_width,
+                                    ann['bbox'][3]/img_height]
+                            '''
+                            box = []
+                            box.append(cat_id_map[ann['category_id']])
+                            '''
+                            seg = []
+                            #seg.append(self.cat_id_map[ann['category_id']])
+
+                            #ann_segmentation_minrect = seg2minrect(ann['segmentation'][0])
+                            if 'segmentation' in ann and len(ann['segmentation']):
+                                for coord_index,coord in enumerate(ann['segmentation'][0]):
+                                    if coord_index%2==1:
+                                        
+                                        #box.append(ann_segmentation_minrect[coord_index-1]/img_width)
+                                        #box.append(coord/img_height)
+
+                                        seg.append(ann['segmentation'][0][coord_index-1]/img_width)
+                                        seg.append(coord/img_height)
+
+                                        #box.append(ann_segmentation_minrect[coord_index-1])
+                                        #box.append(coord)
+
+                                        #seg.append(ann['segmentation'][0][coord_index-1])
+                                        #seg.append(coord)
+                            
+                            boxes.append(box)
+                            segs.append(np.array(seg, dtype=np.float32).reshape(-1, 2))
+
+                    if len(boxes)>0:
+                        instance_n+=len(boxes)
+                        self.labels.append(np.array(boxes, dtype=np.float64))
+                        self.shapes.append((img_width,img_height))
+                        self.segments.append(segs)
+                        self.img_files.append(os.path.join(images_root,img['file_name']))          
+
         self.shapes = np.array(self.shapes, dtype=np.float64)
         #self.img_files = list(cache.keys())  # update
         #self.label_files = img2label_paths(cache.keys())  # update
@@ -1189,7 +1285,7 @@ class LoadCOCO(LoadImagesAndLabels):
         self.n = n
         self.indices = range(n)
         
-        print('Images number:{}!'.format(instance_n))
+        print('Images number:{}!'.format(n))
         print('Instances number:{}!'.format(instance_n))
 
         # Update labels
