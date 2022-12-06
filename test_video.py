@@ -46,20 +46,28 @@ def CropImg(image,roi=None):
 
 def process_videos():
 
-    gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=1)
+    gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=2)
 
-    gastro_disease_detector.ini_model(model_dir="single_category.pt")
+    #gastro_disease_detector.ini_model(model_dir="single_category.pt")
+    
+    model_name ='WJ_V1_with_mfp3-0'
+    
+    gastro_disease_detector.ini_model(model_dir='out/'+model_name+'/yolov7-wj_v1_with_fp/weights/best.pt')
 
-    videos_dir = '/data3/xiaolong_liang/data/videos_2022/202201_r06/gastroscopy/'
+    #videos_dir = '/data3/xiaolong_liang/data/videos_2022/202201_r06/gastroscopy/'
+    videos_dir = '/data3/qilei_chen/DATA/gastro_cancer_tests/xiehe2111_2205/'
 
-    report_images_dir = '/data2/qilei_chen/wj_fp_images1'
+    #report_images_dir = '/data2/qilei_chen/wj_fp_images1'
+    report_images_dir = '/data3/qilei_chen/DATA/gastro_cancer_tests/xiehe2111_2205_'+model_name+'/'
+    
+    os.makedirs(report_images_dir,exist_ok=True)
 
     video_list = glob.glob(os.path.join(videos_dir,"*.mp4"))
-
     
+    roi = None
 
-    for video_dir in video_list:
-        print(videos_dir)
+    for video_dir in sorted(video_list):
+        print(video_dir)
         video = cv2.VideoCapture(video_dir)
 
         video_name = os.path.basename(video_dir)
@@ -69,10 +77,12 @@ def process_videos():
         os.makedirs(images_folder,exist_ok=True)
 
         fps = video.get(cv2.CAP_PROP_FPS)
+        
+        video.set(cv2.CAP_PROP_POS_FRAMES,1000)
 
         ret, frame = video.read()
         
-        roi = None
+        video.set(cv2.CAP_PROP_POS_FRAMES,0)
 
         if roi==None:
             _, roi = CropImg(frame)
@@ -99,7 +109,7 @@ def process_videos():
                 frame_id_report_log.write(str(frame_id)+'\n')
             
             cv2.putText(frame, str(frame_id), (0, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255, 255, 255), 2)
-            frame = gastro_disease_detector.show_result_on_image(frame,result,None)            
+            frame = gastro_disease_detector.show_result_on_image(frame,result,visible_ids=[0])            
 
             video_writer.write(frame)
 
@@ -397,10 +407,10 @@ def generate_fp_coco():
         json.dump(temp_coco,outfile)
 
 if __name__ == '__main__':
-    #process_videos()
+    process_videos()
     #extract_frames()
     #reprocess_images()
     #print(parse_periods())
-    process_videos_xiangya()
+    #process_videos_xiangya()
     #generate_fp_coco()
     pass
