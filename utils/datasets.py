@@ -1178,7 +1178,7 @@ class LoadCOCO(LoadImagesAndLabels):
                             self.segments.append(segs)
                             self.img_files.append(image_dir)
 
-        if True: #利用張璋整理的1123号之前搜集到的所有数据再次进行训练，存在和前面數據重複的問題
+        if False: #利用張璋整理的1123号之前搜集到的所有数据再次进行训练，存在和前面數據重複的問題
             if test_mode:
                 pass
             else:
