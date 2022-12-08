@@ -39,7 +39,8 @@ def test(data,
          compute_loss=None,
          half_precision=True,
          trace=False,
-         is_coco=False):
+         is_coco=False,
+         special_class_id = -1):
     # Initialize/load model and set device
     training = model is not None
     if training:  # called by train.py
@@ -219,7 +220,10 @@ def test(data,
     if len(stats) and stats[0].any():
         p, r, ap, f1, ap_class = ap_per_class(*stats, plot=plots, save_dir=save_dir, names=names)
         ap50, ap = ap[:, 0], ap.mean(1)  # AP@0.5, AP@0.5:0.95
-        mp, mr, map50, map = p.mean(), r.mean(), ap50.mean(), ap.mean()
+        if special_class_id<0:
+            mp, mr, map50, map = p.mean(), r.mean(), ap50.mean(), ap.mean()
+        else:
+            mp, mr, map50, map = p[special_class_id], r[special_class_id], ap50[special_class_id], ap[special_class_id]
         nt = np.bincount(stats[3].astype(np.int64), minlength=nc)  # number of targets per class
     else:
         nt = torch.zeros(1)
