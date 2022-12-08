@@ -10,7 +10,7 @@ def CropImg(image,roi=None):
     if roi is None:
         height, width, d = image.shape
 
-        pixel_thr = 30
+        pixel_thr = 10
         
         w_start=0
         while True:
@@ -396,11 +396,119 @@ def generate_fp_coco():
     with open(os.path.join(data_dir,"fp_instances_default_train.json"), "w") as outfile:
         json.dump(temp_coco,outfile)
 
+def generate_fp_coco1():
+    gastro_disease_detector = GastroDiseaseDetect(half =False,gpu_id=1)
+    #gastro_disease_detector.ini_model(model_dir="/data1/qilei_chen/DEVELOPMENTS/yolov7/out/WJ_V1_with_mfp1/yolov7-wj_v1_with_fp/weights/best.pt")
+    gastro_disease_detector.ini_model(model_dir="single_category.pt")
+
+    #data_dir = '/data2/qilei_chen/DATA/2021_2022gastro_cancers/2021_videos'
+    data_dir = '/data2/qilei_chen/wj_fp_images1'
+    org_videos_dir = '/data3/xiaolong_liang/data/videos_2022/202201_r06/gastroscopy/'
+
+    #folder_list = sorted(glob.glob(os.path.join(data_dir,'WJ_V1_with_mfp1_filted/*')))
+    #folder_list = sorted(glob.glob(os.path.join(data_dir,'images1_filted/*')))
+    folder_list = sorted(glob.glob(os.path.join(data_dir,'images_65_fp_yijingchuli/*')))
+
+    #temp_coco = COCO('/data2/qilei_chen/DATA/2021_2022gastro_cancers/2022_1/annotations/crop_instances_default.json')
+    temp_coco = json.load(open('/data2/qilei_chen/DATA/2021_2022gastro_cancers/2022_1/annotations/crop_instances_default.json'))
+
+    temp_coco['categories'] = [{'id':1,'name':'others','supercategory':''}]
+
+    images = []
+
+    annotations =[]
+
+    temp_image = temp_coco['images'][0].copy()
+
+    temp_annotation = temp_coco['annotations'][0].copy()
+
+    image_id = 1
+
+    annotation_id = 1
+    print(len(folder_list))
+    for folder_dir in folder_list[:45]:
+        print(folder_dir)
+
+        #video = cv2.VideoCapture(os.path.join(data_dir,os.path.basename(folder_dir)+".mp4"))
+        video = cv2.VideoCapture(os.path.join(org_videos_dir,os.path.basename(folder_dir)+".mp4"))
+        ret, frame = video.read()
+        #ret, frame = video.read()
+        print(ret)
+        
+        roi = None
+
+        if roi==None:
+            _, roi = CropImg(frame)
+
+        #images_folder = os.path.join(folder_dir,'process')
+        images_folder = os.path.join(folder_dir,'WJ_V1_with_mfp1')
+        
+        org_crop_images_folder = os.path.join(folder_dir,'org_crop')
+        os.makedirs(org_crop_images_folder,exist_ok=True)
+
+        images_list = sorted(glob.glob(os.path.join(images_folder,'*.jpg')))
+
+        for image_dir in images_list:
+            
+            #image_dir = image_dir.replace('WJ_V1_with_mfp1_filted','WJ_V1_with_mfp1')
+            #image_dir = image_dir.replace('process','org')
+
+            frame_id = int(os.path.basename(image_dir).replace('.jpg',''))
+
+            video.set(cv2.CAP_PROP_POS_FRAMES,frame_id)
+
+            ret, image = video.read()
+
+            image = CropImg(image,roi)
+            
+            #image = cv2.imread(image_dir)
+            cv2.imwrite(os.path.join(org_crop_images_folder,os.path.basename(image_dir)),image)
+
+            temp_image['file_name'] = os.path.join(org_crop_images_folder,os.path.basename(image_dir)).replace(data_dir+"/",'')
+
+            temp_image['id'] = image_id
+
+            temp_image['height'],temp_image['width'],_ = image.shape
+
+            temp_image['roi'] = roi
+
+            result = gastro_disease_detector.predict(image, formate_result = False)
+
+            temp_annotation_id = annotation_id
+
+            report = True
+
+            for i, det in enumerate(result):
+                # Write results
+                for *xyxy, conf, cls in reversed(det):
+                    temp_annotation['id'] = annotation_id
+                    temp_annotation['bbox'] = [int(xyxy[0]),int(xyxy[1]),int(xyxy[2]-xyxy[0]),int(xyxy[3]-xyxy[1])]
+                    temp_annotation['category_id'] = 1
+                    temp_annotation['image_id'] = image_id
+                    temp_annotation['segmentation'] = [[]]
+                    temp_annotation['area'] = temp_annotation['bbox'][2]* temp_annotation['bbox'][3]
+                    annotations.append(temp_annotation.copy())
+                    if int(cls)==0:
+                        report = False
+                    annotation_id+=1
+                    
+            if temp_annotation_id == annotation_id or report:
+                print(image_dir)
+            images.append(temp_image.copy())
+            image_id+=1
+
+    temp_coco['images'] = images
+    temp_coco['annotations'] = annotations
+
+    with open(os.path.join(data_dir,"fp_instances_default_train1.json"), "w") as outfile:
+        json.dump(temp_coco,outfile)
+
 if __name__ == '__main__':
     #process_videos()
     #extract_frames()
     #reprocess_images()
     #print(parse_periods())
     #process_videos_xiangya()
-    generate_fp_coco()
+    #generate_fp_coco()
+    generate_fp_coco1()
     pass
