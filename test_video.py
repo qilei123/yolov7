@@ -10,7 +10,7 @@ def CropImg(image,roi=None):
     if roi is None:
         height, width, d = image.shape
 
-        pixel_thr = 30
+        pixel_thr = 30 #30和10针对不同的视频，10针对xl65
         
         w_start=0
         while True:
