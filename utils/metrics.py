@@ -14,6 +14,16 @@ def fitness(x):
     w = [0.0, 0.0, 0.1, 0.9]  # weights for [P, R, mAP@0.5, mAP@0.5:0.95]
     return (x[:, :4] * w).sum(1)
 
+def fitness_f1(x):
+    # Model fitness as a weighted combination of metrics
+    f1 = (2*x[:,0]*x[:,1])/(x[:,0]+x[:,1]+0.0001)
+    return f1
+
+def fitness_f2(x):
+    # Model fitness as a weighted combination of metrics
+    f2 = (5*x[:,0]*x[:,1])/(4*x[:,0]+x[:,1]+0.0001)
+    return f2
+
 
 def ap_per_class(tp, conf, pred_cls, target_cls, plot=False, save_dir='.', names=()):
     """ Compute the average precision, given the recall and precision curves.

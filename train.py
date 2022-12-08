@@ -28,7 +28,7 @@ from utils.autoanchor import check_anchors
 from utils.datasets import create_dataloader
 from utils.general import labels_to_class_weights, increment_path, labels_to_image_weights, init_seeds, \
     fitness, strip_optimizer, get_latest_run, check_dataset, check_file, check_git_status, check_img_size, \
-    check_requirements, print_mutation, set_logging, one_cycle, colorstr
+    check_requirements, print_mutation, set_logging, one_cycle, colorstr, fitness_f2, fitness_f1
 from utils.google_utils import attempt_download
 from utils.loss import ComputeLoss, ComputeLossOTA
 from utils.plots import plot_images, plot_labels, plot_results, plot_evolution
@@ -48,6 +48,8 @@ def train(hyp, opt, device, tb_writer=None):
     wdir.mkdir(parents=True, exist_ok=True)  # make dir
     last = wdir / 'last.pt'
     best = wdir / 'best.pt'
+    best_f2 = wdir / 'best_f2.pt'
+    best_f1 = wdir / 'best_f1.pt'
     results_file = save_dir / 'results.txt'
 
     # Save run settings
@@ -200,7 +202,7 @@ def train(hyp, opt, device, tb_writer=None):
     ema = ModelEMA(model) if rank in [-1, 0] else None
 
     # Resume
-    start_epoch, best_fitness = 0, 0.0
+    start_epoch, best_fitness, best_fitness_f1, best_fitness_f2 = 0, 0.0, 0.0, 0.0
     if pretrained:
         # Optimizer
         if ckpt['optimizer'] is not None:
@@ -419,11 +421,12 @@ def train(hyp, opt, device, tb_writer=None):
                                                  single_cls=opt.single_cls,
                                                  dataloader=testloader,
                                                  save_dir=save_dir,
-                                                 verbose=nc < 50 and final_epoch,
+                                                 verbose=True or (nc < 50 and final_epoch),
                                                  plots=plots and final_epoch,
                                                  wandb_logger=wandb_logger,
                                                  compute_loss=compute_loss,
-                                                 is_coco=is_coco)
+                                                 is_coco=is_coco,
+                                                 special_class_id=0)#统计的过程只计算0类的cancer的结果
 
             # Write
             with open(results_file, 'a') as f:
@@ -445,13 +448,25 @@ def train(hyp, opt, device, tb_writer=None):
             # Update best mAP
             fi = fitness(np.array(results).reshape(1, -1))  # weighted combination of [P, R, mAP@.5, mAP@.5-.95]
             if fi > best_fitness:
-                best_fitness = fi
+                best_fitness = fi   
+                
+            f1 = fitness_f1(np.array(results).reshape(1, -1))
+            if f1>best_fitness_f1:
+                best_fitness_f1 = f1
+             
+            # update best f2
+            f2 = fitness_f2(np.array(results).reshape(1, -1))
+            if f2> best_fitness_f2:
+                best_fitness_f2 = f2
+            
             wandb_logger.end_epoch(best_result=best_fitness == fi)
 
             # Save model
             if (not opt.nosave) or (final_epoch and not opt.evolve):  # if save
                 ckpt = {'epoch': epoch,
                         'best_fitness': best_fitness,
+                        'best_fitness_f2': best_fitness_f2,
+                        'best_fitness_f1': best_fitness_f1,
                         'training_results': results_file.read_text(),
                         'model': deepcopy(model.module if is_parallel(model) else model).half(),
                         'ema': deepcopy(ema.ema).half(),
@@ -463,6 +478,12 @@ def train(hyp, opt, device, tb_writer=None):
                 torch.save(ckpt, last)
                 if best_fitness == fi:
                     torch.save(ckpt, best)
+                    
+                if best_fitness_f1 == f1:#save best f1
+                    torch.save(ckpt, best_f1)
+                    
+                if best_fitness_f2 == f2:#save best f2
+                    torch.save(ckpt, best_f2)
                 if (best_fitness == fi) and (epoch >= 200):
                     torch.save(ckpt, wdir / 'best_{:03d}.pt'.format(epoch))
                 if epoch == 0:

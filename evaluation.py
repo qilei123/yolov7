@@ -8,6 +8,7 @@ import numpy as np
 import torch
 import yaml
 from tqdm import tqdm
+import cv2
 
 from models.experimental import attempt_load
 from utils.datasets import create_dataloader
@@ -39,8 +40,7 @@ def test(data,
          compute_loss=None,
          half_precision=True,
          trace=False,
-         is_coco=False,
-         special_class_id = -1):
+         is_coco=False):
     # Initialize/load model and set device
     training = model is not None
     if training:  # called by train.py
@@ -220,10 +220,7 @@ def test(data,
     if len(stats) and stats[0].any():
         p, r, ap, f1, ap_class = ap_per_class(*stats, plot=plots, save_dir=save_dir, names=names)
         ap50, ap = ap[:, 0], ap.mean(1)  # AP@0.5, AP@0.5:0.95
-        if special_class_id<0:
-            mp, mr, map50, map = p.mean(), r.mean(), ap50.mean(), ap.mean()
-        else:
-            mp, mr, map50, map = p[special_class_id], r[special_class_id], ap50[special_class_id], ap[special_class_id]
+        mp, mr, map50, map = p.mean(), r.mean(), ap50.mean(), ap.mean()
         nt = np.bincount(stats[3].astype(np.int64), minlength=nc)  # number of targets per class
     else:
         nt = torch.zeros(1)
@@ -286,6 +283,151 @@ def test(data,
         maps[c] = ap[i]
     return (mp, mr, map50, map, *(loss.cpu() / len(dataloader)).tolist()), maps, t
 
+def cxcywh2xyxy(cxcywh):
+    xyxy = [cxcywh[0]-cxcywh[2]/2,cxcywh[1]-cxcywh[3]/2,
+            cxcywh[0]+cxcywh[2]/2,cxcywh[1]+cxcywh[3]/2]
+    
+    return [float(x) for x in xyxy]
+
+def load_pred(txts_dir,txt_name):
+    boxes = []
+    if not os.path.exists(os.path.join(txts_dir,txt_name)):
+        return boxes
+    txt = open(os.path.join(txts_dir,txt_name))
+    
+    line = txt.readline()
+    
+    while line:
+        
+        eles = line.split(' ')
+        
+        box_info  = [float(x) for x in eles]
+        
+        box = box_info[:1]+cxcywh2xyxy(box_info[1:-1])+box_info[-1:]
+        
+        boxes.append(box)
+        
+        
+        line = txt.readline()
+        
+    return boxes
+
+
+
+def bb_intersection_over_union(boxA, boxB):
+    	# determine the (x, y)-coordinates of the intersection rectangle
+	xA = max(boxA[0], boxB[0])
+	yA = max(boxA[1], boxB[1])
+	xB = min(boxA[2], boxB[2])
+	yB = min(boxA[3], boxB[3])
+	# compute the area of intersection rectangle
+	interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
+	# compute the area of both the prediction and ground-truth
+	# rectangles
+	boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
+	boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
+	# compute the intersection over union by taking the intersection
+	# area and dividing it by the sum of prediction + ground-truth
+	# areas - the interesection area
+	iou = interArea / float(boxAArea + boxBArea - interArea)
+	# return the intersection over union value
+	return iou
+
+def box_center_in(boxA, boxB):
+    centerAx = (boxA[0]+boxA[2])/2
+    centerAy = (boxA[1]+boxA[3])/2
+    
+    return (centerAx>boxB[0]) and (centerAx<boxB[2]) and (centerAy>boxB[1]) and (centerAy<boxB[3])
+
+
+def draw_box(image,box,color):
+
+    height,width,_ = image.shape
+    # Line thickness of 2 px
+    thickness = 2
+    
+    # Using cv2.rectangle() method
+    # Draw a rectangle with blue line borders of thickness of 2 px
+    return cv2.rectangle(image, (int(box[0]*width),int(box[1]*height)),
+                         (int(box[2]*width),int(box[3]*height)), color, thickness)   
+
+def condition(boxA,boxB,iou_thred):
+    iou = bb_intersection_over_union(boxA,boxB)
+    center_in  = box_center_in(boxA,boxB)
+    #if iou>iou_thred or center_in:
+    if iou>iou_thred and center_in:
+    #if center_in:
+    #if iou>iou_thred:
+        return True
+    return False
+ 
+def evaluation2():
+    task = 'val'
+    iou_thred = 0.3
+    dataloader = create_dataloader('/data2/zzhang/annotation/erosiveulcer_fine/test0928.json',
+                                   640,1,32,opt,pad=0.5, rect=True,prefix=colorstr(f'{task}: '))[0]
+    
+    gt = 0
+    targeted_gt = 0
+    
+    pred = 0
+    targeted_pred = 0
+    
+    neg = 0
+    
+    true_neg = 0
+    
+    tally_labels = [0]
+    
+    for (img, targets, paths, shapes) in tqdm(dataloader):
+        #print(paths)
+        
+        image = cv2.imread(paths[0])
+            
+        pred_boxes = load_pred('runs/test/exp/labels',os.path.basename(paths[0]).replace('jpg','txt'))  
+                      
+        target_boxes = []
+        
+        save_show = False
+        
+        for target in targets:
+            target_label = float(target[1])
+            target_box = cxcywh2xyxy(target[2:])
+            target_boxes.append([target_label]+target_box)
+            if target_label in tally_labels:
+                image = draw_box(image,target_box,(255,0,0))
+                gt+=1
+                save_show = True
+                for pred_box in pred_boxes:
+                    if int(pred_box[0])==int(target_label):
+                        if condition(target_box,pred_box[1:-1],iou_thred):
+                            targeted_gt+=1
+                            break
+        
+        if not save_show:
+            neg+=1                    
+
+        for pred_box in pred_boxes:
+            if pred_box[0] in tally_labels:
+                image = draw_box(image,pred_box[1:-1],(0,0,255))
+                pred+=1
+                save_show = True
+                for target_box in target_boxes:
+                    if int(target_box[0]) == int(pred_box[0]):
+                        if condition(pred_box[1:-1],target_box[1:],iou_thred):
+                            targeted_pred+=1
+                            break
+                        
+        if not save_show:
+            true_neg+=1
+            
+        #if save_show:
+        #    cv2.imwrite(os.path.join('runs/test/exp/shows',os.path.basename(paths[0])),image)
+                    
+    print(targeted_gt/gt)#-------------recall
+    print(targeted_pred/pred)#--------------precision 
+    print(true_neg/neg)#----------------specifity   
+        
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='test.py')
@@ -312,8 +454,10 @@ if __name__ == '__main__':
     opt.save_json |= opt.data.endswith('coco.yaml')
     opt.data = check_file(opt.data)  # check file
     print(opt)
+    
+    evaluation2()
     #check_requirements()
-
+    '''
     if opt.task in ('train', 'val', 'test'):  # run normally
         test(opt.data,
              opt.weights,
@@ -349,3 +493,6 @@ if __name__ == '__main__':
             np.savetxt(f, y, fmt='%10.4g')  # save
         os.system('zip -r study.zip study_*.txt')
         plot_study_txt(x=x)  # plot
+
+    '''
+
