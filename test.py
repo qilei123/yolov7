@@ -221,16 +221,20 @@ def test(data,
         p, r, ap, f1, ap_class = ap_per_class(*stats, plot=plots, save_dir=save_dir, names=names)
         ap50, ap = ap[:, 0], ap.mean(1)  # AP@0.5, AP@0.5:0.95
         if special_class_id<0:
-            mp, mr, map50, map = p.mean(), r.mean(), ap50.mean(), ap.mean()
+            mp, mr = p.mean(), r.mean()
         else:
-            mp, mr, map50, map = p[special_class_id], r[special_class_id], ap50[special_class_id], ap[special_class_id]
+            mp, mr = p[special_class_id], r[special_class_id]
+            
+        map50, map = ap50.mean(), ap.mean() #this is for the default best.pt
+        
         nt = np.bincount(stats[3].astype(np.int64), minlength=nc)  # number of targets per class
     else:
         nt = torch.zeros(1)
 
     # Print results
     pf = '%20s' + '%12i' * 2 + '%12.3g' * 4  # print format
-    print(pf % ('all', seen, nt.sum(), mp, mr, map50, map))
+    #print(pf % ('all', seen, nt.sum(), mp, mr, map50, map))
+    print(pf % ('all', seen, nt.sum(), p.mean(), r.mean(), map50, map))
 
     # Print results per class
     if (verbose or (nc < 50 and not training)) and nc > 1 and len(stats):
