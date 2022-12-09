@@ -225,7 +225,7 @@ def test(data,
         else:
             mp, mr = p[special_class_id], r[special_class_id]
             
-        map50, map = ap50.mean(), ap.mean() #this if for the default best.pt
+        map50, map = ap50.mean(), ap.mean() #this is for the default best.pt
         
         nt = np.bincount(stats[3].astype(np.int64), minlength=nc)  # number of targets per class
     else:
