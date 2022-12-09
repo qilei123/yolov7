@@ -233,7 +233,8 @@ def test(data,
 
     # Print results
     pf = '%20s' + '%12i' * 2 + '%12.3g' * 4  # print format
-    print(pf % ('all', seen, nt.sum(), mp, mr, map50, map))
+    #print(pf % ('all', seen, nt.sum(), mp, mr, map50, map))
+    print(pf % ('all', seen, nt.sum(), p.mean(), r.mean(), map50, map))
 
     # Print results per class
     if (verbose or (nc < 50 and not training)) and nc > 1 and len(stats):
