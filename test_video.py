@@ -10,7 +10,7 @@ def CropImg(image,roi=None):
     if roi is None:
         height, width, d = image.shape
 
-        pixel_thr = 10
+        pixel_thr = 30 #30和10针对不同的视频，10针对xl65
         
         w_start=0
         while True:
@@ -46,20 +46,28 @@ def CropImg(image,roi=None):
 
 def process_videos():
 
-    gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=1)
+    gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=2)
 
-    gastro_disease_detector.ini_model(model_dir="single_category.pt")
+    #gastro_disease_detector.ini_model(model_dir="single_category.pt")
+    
+    model_name ='WJ_V1_with_mfp4-4'
+    
+    gastro_disease_detector.ini_model(model_dir='out/'+model_name+'/yolov7-wj_v1_with_fp/weights/best_f1.pt')
 
-    videos_dir = '/data3/xiaolong_liang/data/videos_2022/202201_r06/gastroscopy/'
+    #videos_dir = '/data3/xiaolong_liang/data/videos_2022/202201_r06/gastroscopy/'
+    videos_dir = '/data3/qilei_chen/DATA/gastro_cancer_tests/xiehe2111_2205/'
 
-    report_images_dir = '/data2/qilei_chen/wj_fp_images1'
+    #report_images_dir = '/data2/qilei_chen/wj_fp_images1'
+    report_images_dir = '/data3/qilei_chen/DATA/gastro_cancer_tests/xiehe2111_2205_'+model_name+'/'
+    
+    os.makedirs(report_images_dir,exist_ok=True)
 
     video_list = glob.glob(os.path.join(videos_dir,"*.mp4"))
-
     
+    roi = None
 
-    for video_dir in video_list:
-        print(videos_dir)
+    for video_dir in sorted(video_list):
+        print(video_dir)
         video = cv2.VideoCapture(video_dir)
 
         video_name = os.path.basename(video_dir)
@@ -69,10 +77,12 @@ def process_videos():
         os.makedirs(images_folder,exist_ok=True)
 
         fps = video.get(cv2.CAP_PROP_FPS)
+        
+        video.set(cv2.CAP_PROP_POS_FRAMES,1000)
 
         ret, frame = video.read()
         
-        roi = None
+        video.set(cv2.CAP_PROP_POS_FRAMES,0)
 
         if roi==None:
             _, roi = CropImg(frame)
@@ -99,7 +109,7 @@ def process_videos():
                 frame_id_report_log.write(str(frame_id)+'\n')
             
             cv2.putText(frame, str(frame_id), (0, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255, 255, 255), 2)
-            frame = gastro_disease_detector.show_result_on_image(frame,result,None)            
+            frame = gastro_disease_detector.show_result_on_image(frame,result,visible_ids=[0])            
 
             video_writer.write(frame)
 
@@ -220,13 +230,13 @@ def checkPeriods(periods,fps,frame_id):
 
 def process_videos_xiangya():
 
-    gastro_disease_detector = GastroDiseaseDetect(half =False,gpu_id=0)
+    gastro_disease_detector = GastroDiseaseDetect(half =False,gpu_id=2)
 
-    train_dataset_name = 'WJ_V1_with_mfp1'
+    train_dataset_name = 'WJ_V1_with_mfp3-1'
 
-    gastro_disease_detector.ini_model(model_dir="/data1/qilei_chen/DEVELOPMENTS/yolov7/out/WJ_V1_with_mfp1/yolov7-wj_v1_with_fp/weights/best.pt")
+    gastro_disease_detector.ini_model(model_dir="out/"+train_dataset_name+"/yolov7-wj_v1_with_fp/weights/best.pt")
 
-    videos_dir = '/data2/qilei_chen/DATA/2021_2022gastro_cancers/2021_videos/'
+    videos_dir = '/data2/qilei_chen/DATA/2021_2022gastro_cancers/2022_videos/'
 
     report_images_dir = os.path.join(videos_dir,train_dataset_name)
 
@@ -234,11 +244,11 @@ def process_videos_xiangya():
 
     os.makedirs(report_videos_dir,exist_ok=True)
 
-    video_list = glob.glob(os.path.join(videos_dir,"*.mp4"))
+    video_list = sorted(glob.glob(os.path.join(videos_dir,"*.mp4")))
 
-    video_list = parse_periods(open(os.path.join(videos_dir,'periods.txt')))
+    #video_list = parse_periods(open(os.path.join(videos_dir,'periods.txt')))
 
-    for video_dir in video_list:
+    for video_dir in video_list[13:]:
         video_dir = os.path.join(videos_dir,video_dir)
 
         print(video_dir)
@@ -249,9 +259,9 @@ def process_videos_xiangya():
 
         images_folder = os.path.join(report_images_dir,video_name.replace('.mp4',''))
         org_images_folder = os.path.join(images_folder,'org')
-        os.makedirs(org_images_folder,exist_ok=True)
+        #os.makedirs(org_images_folder,exist_ok=True)
         process_images_folder = os.path.join(images_folder,'process')
-        os.makedirs(process_images_folder,exist_ok=True)
+        #os.makedirs(process_images_folder,exist_ok=True)
 
         fps = video.get(cv2.CAP_PROP_FPS)
 
@@ -284,7 +294,7 @@ def process_videos_xiangya():
                     for *xyxy, conf, cls in reversed(det):
                         if int(cls)==0:
                             report = True
-            report  = report and checkPeriods(video_list[video_name],fps,int(frame_id))
+            #report  = report and checkPeriods(video_list[video_name],fps,int(frame_id))
             if report:
                 #frame_id_report_log.write(str(frame_id)+'\n')
                 #cv2.imwrite(os.path.join(org_images_folder,str(frame_id).zfill(10)+'.jpg'),frame)
@@ -504,11 +514,11 @@ def generate_fp_coco1():
         json.dump(temp_coco,outfile)
 
 if __name__ == '__main__':
-    #process_videos()
+    process_videos()
     #extract_frames()
     #reprocess_images()
     #print(parse_periods())
     #process_videos_xiangya()
     #generate_fp_coco()
-    generate_fp_coco1()
+    #generate_fp_coco1()
     pass
