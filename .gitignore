@@ -248,6 +248,7 @@ cmake-build-release/
 out/
 out_bk
 out
+out_d2
 
 # mpeltonen/sbt-idea plugin
 .idea_modules/
