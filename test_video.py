@@ -52,13 +52,14 @@ def process_videos():
     
     model_name ='WJ_V1_with_mfp4-4'
     
-    gastro_disease_detector.ini_model(model_dir='out/'+model_name+'/yolov7-wj_v1_with_fp/weights/best_f1.pt')
+    gastro_disease_detector.ini_model(model_dir='out/'+model_name+'/yolov7-wj_v1_with_fp/weights/best.pt')
 
     #videos_dir = '/data3/xiaolong_liang/data/videos_2022/202201_r06/gastroscopy/'
-    videos_dir = '/data3/qilei_chen/DATA/gastro_cancer_tests/xiehe2111_2205/'
+    #videos_dir = '/data3/qilei_chen/DATA/gastro_cancer_tests/xiehe2111_2205/'
+    videos_dir = 'test_videos/xiehe2111_2205/'
 
     #report_images_dir = '/data2/qilei_chen/wj_fp_images1'
-    report_images_dir = '/data3/qilei_chen/DATA/gastro_cancer_tests/xiehe2111_2205_'+model_name+'/'
+    report_images_dir = 'test_videos/xiehe2111_2205_'+model_name+'/'
     
     os.makedirs(report_images_dir,exist_ok=True)
 
