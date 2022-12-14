@@ -246,9 +246,13 @@ cmake-build-release/
 
 # IntelliJ
 out/
+<<<<<<< HEAD
 out_bk
 out_d2
 test_videos
+=======
+out_d2
+>>>>>>> 70190b5f2a2ebade4da86e821870cc10bbee4f6c
 
 # mpeltonen/sbt-idea plugin
 .idea_modules/

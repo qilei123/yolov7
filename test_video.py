@@ -11,7 +11,7 @@ def CropImg(image,roi=None):
         height, width, d = image.shape
 
         pixel_thr = 30 #30和10针对不同的视频，10针对xl65
-        
+
         w_start=0
         while True:
             if np.sum(image[int(height/2),int(w_start),:])/d>pixel_thr:
@@ -50,7 +50,9 @@ def process_videos():
 
     #gastro_disease_detector.ini_model(model_dir="single_category.pt")
     
-    model_name ='WJ_V1_with_mfp4-4'
+    model_name ='WJ_V1_with_mfp4-4-1'
+    
+    model_pt_name = 'best_f2'
     
     model_pt_name = 'best_f2'
     
@@ -59,7 +61,7 @@ def process_videos():
     gastro_disease_detector.ini_model(model_dir=model_dir)
 
     #videos_dir = '/data3/xiaolong_liang/data/videos_2022/202201_r06/gastroscopy/'
-    videos_dir = '/data1/qilei_chen/DATA/gastro_cancer_tests/xiehe2111_2205/'
+    videos_dir = '/data1/qilei_chen/DATA/gastro_cancer_tests/xiehe2111_2205'
 
     #report_images_dir = '/data2/qilei_chen/wj_fp_images1'
     report_images_dir = videos_dir+'_'+model_name+'_'+model_pt_name+'/'
@@ -81,14 +83,13 @@ def process_videos():
         os.makedirs(images_folder,exist_ok=True)
 
         fps = video.get(cv2.CAP_PROP_FPS)
-        
-        video.set(cv2.CAP_PROP_POS_FRAMES,1000)
-
-        ret, frame = video.read()
-        
-        video.set(cv2.CAP_PROP_POS_FRAMES,0)
-
         if roi==None:
+            video.set(cv2.CAP_PROP_POS_FRAMES,10000)
+
+            ret, frame = video.read()
+            
+            video.set(cv2.CAP_PROP_POS_FRAMES,0)
+
             _, roi = CropImg(frame)
 
         size = (int(roi[2]-roi[0]),int(roi[3]-roi[1]))
