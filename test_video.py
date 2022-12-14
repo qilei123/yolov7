@@ -10,7 +10,7 @@ def CropImg(image,roi=None):
     if roi is None:
         height, width, d = image.shape
 
-        pixel_thr = 30
+        pixel_thr = 30#若是对于数据集xl fp，那么应设置为10
         
         w_start=0
         while True:
