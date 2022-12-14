@@ -50,15 +50,19 @@ def process_videos():
 
     #gastro_disease_detector.ini_model(model_dir="single_category.pt")
     
-    model_name ='WJ_V1_with_mfp4-4'
+    model_name ='WJ_V1_with_mfp4-4-1'
     
-    gastro_disease_detector.ini_model(model_dir='out/'+model_name+'/yolov7-wj_v1_with_fp/weights/best_f1.pt')
+    model_pt_name = 'best_f2'
+    
+    model_dir = 'out/'+model_name+'/yolov7-wj_v1_with_fp/weights/'+model_pt_name+'.pt'
+    
+    gastro_disease_detector.ini_model(model_dir=model_dir)
 
     #videos_dir = '/data3/xiaolong_liang/data/videos_2022/202201_r06/gastroscopy/'
-    videos_dir = '/data3/qilei_chen/DATA/gastro_cancer_tests/xiehe2111_2205/'
+    videos_dir = '/data1/qilei_chen/DATA/gastro_cancer_tests/xiehe2111_2205'
 
     #report_images_dir = '/data2/qilei_chen/wj_fp_images1'
-    report_images_dir = '/data3/qilei_chen/DATA/gastro_cancer_tests/xiehe2111_2205_'+model_name+'/'
+    report_images_dir = videos_dir+'_'+model_name+'_'+model_pt_name+'/'
     
     os.makedirs(report_images_dir,exist_ok=True)
 
@@ -77,14 +81,13 @@ def process_videos():
         os.makedirs(images_folder,exist_ok=True)
 
         fps = video.get(cv2.CAP_PROP_FPS)
-        
-        video.set(cv2.CAP_PROP_POS_FRAMES,1000)
-
-        ret, frame = video.read()
-        
-        video.set(cv2.CAP_PROP_POS_FRAMES,0)
-
         if roi==None:
+            video.set(cv2.CAP_PROP_POS_FRAMES,10000)
+
+            ret, frame = video.read()
+            
+            video.set(cv2.CAP_PROP_POS_FRAMES,0)
+
             _, roi = CropImg(frame)
 
         size = (int(roi[2]-roi[0]),int(roi[3]-roi[1]))
