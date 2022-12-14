@@ -74,11 +74,11 @@ def process_videos():
         print(video_dir)
         video = cv2.VideoCapture(video_dir)
 
-        video_name = os.path.basename(video_dir)
+        #video_name = os.path.basename(video_dir)
 
-        images_folder = os.path.join(report_images_dir,video_name.replace('.mp4',''))
+        #images_folder = os.path.join(report_images_dir,video_name.replace('.mp4',''))
 
-        os.makedirs(images_folder,exist_ok=True)
+        #os.makedirs(images_folder,exist_ok=True)
 
         fps = video.get(cv2.CAP_PROP_FPS)
         if roi==None:
