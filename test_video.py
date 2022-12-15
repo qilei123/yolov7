@@ -50,13 +50,11 @@ def process_videos():
 
     #gastro_disease_detector.ini_model(model_dir="single_category.pt")
     
-    model_name ='WJ_V1_with_mfp4-4-1'
+    model_name ='WJ_V1_with_mfp3-0'
     
-    model_pt_name = 'best_f2'
+    model_pt_name = 'best'
     
-    model_pt_name = 'best_f2'
-    
-    model_dir = 'out/'+model_name+'/yolov7-wj_v1_with_fp/weights/'+model_pt_name+'.pt'
+    model_dir = 'out_d2/'+model_name+'/yolov7-wj_v1_with_fp/weights/'+model_pt_name+'.pt'
     
     gastro_disease_detector.ini_model(model_dir=model_dir)
 
@@ -91,7 +89,9 @@ def process_videos():
             video.set(cv2.CAP_PROP_POS_FRAMES,0)
 
             _, roi = CropImg(frame)
-
+            
+        ret, frame = video.read()
+        
         size = (int(roi[2]-roi[0]),int(roi[3]-roi[1]))
 
         video_writer = cv2.VideoWriter(os.path.join(report_images_dir,os.path.basename(video_dir)+'.avi'), 
