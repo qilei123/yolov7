@@ -1276,7 +1276,7 @@ class LoadCOCO(LoadImagesAndLabels):
                         self.img_files.append(os.path.join(images_root,img['file_name']))          
 
 
-        if True: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練和測試過程中
+        if False: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練和測試過程中
             append_fp_data_dir = "/data2/qilei_chen/wj_fp_images1"
 
             select_cats_id = [1,]
