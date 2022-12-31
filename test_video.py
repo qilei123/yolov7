@@ -46,20 +46,21 @@ def CropImg(image,roi=None):
 
 def process_videos():
 
-    gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=2)
+    gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=0)
 
     #gastro_disease_detector.ini_model(model_dir="single_category.pt")
     
-    model_name ='WJ_V1_with_mfp4-4'
+    model_name ='WJ_V1_with_mfp4-4-4'
     
-    model_pt_name = 'epoch_299'
+    model_pt_name = 'best'
     
     model_dir = 'out/'+model_name+'/yolov7-wj_v1_with_fp/weights/'+model_pt_name+'.pt'
     
     gastro_disease_detector.ini_model(model_dir=model_dir)
 
     #videos_dir = '/data3/xiaolong_liang/data/videos_2022/202201_r06/gastroscopy/'
-    videos_dir = '/data1/qilei_chen/DATA/gastro_cancer_tests/xiehe2111_2205'
+    #videos_dir = '/data1/qilei_chen/DATA/gastro_cancer_tests/xiehe2111_2205'
+    videos_dir = '/home/ycao/DATASETS/gastro_cancer/videos_test/xiehe2111_2205'
 
     #report_images_dir = '/data2/qilei_chen/wj_fp_images1'
     report_images_dir = videos_dir+'_'+model_name+'_'+model_pt_name+'/'
