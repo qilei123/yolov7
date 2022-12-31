@@ -707,7 +707,10 @@ class LoadCOCO(LoadImagesAndLabels):
         # dictory example:
         # annotations: path = data_root/annotations/train.json; here path is the dir for annotation file
         # images: data_root/images/*
-        coco = COCO(path)
+        self.path27 = '/home/ycao/DEVELOPMENTS/yolov7/data_gc/gastro_cancer_v66'
+        path = os.path.basename(path).replace("_", "/")
+        coco = COCO(self.check_anns_dir(path)) 
+        
         data_root = Path(path).parent
         images_root = os.path.join(data_root,'train/images')
         self.img_files =  []
@@ -756,11 +759,11 @@ class LoadCOCO(LoadImagesAndLabels):
                 self.cat_id_map = {1:1,2:1,3:1,4:1,5:0}
             
         
-        for ImgId in coco.getImgIds():
+        for ImgId in coco.getImgIds():#协和2015-2021年数据+zz_allothers
 
             img = coco.loadImgs([ImgId])[0]
-            if not os.path.exists(os.path.join(images_root,img['file_name'])):
-                #print(os.path.join(images_root,img['file_name']))
+            if not os.path.exists(self.check_img_dir(os.path.join(images_root,img['file_name']))):
+                print(os.path.join(images_root,img['file_name']))
                 continue
             
             #assert img['width'] == img['roi'][2]-img["roi"][0], "annotation error"
@@ -813,7 +816,7 @@ class LoadCOCO(LoadImagesAndLabels):
                 self.labels.append(np.array(boxes, dtype=np.float64))
                 self.shapes.append((img_width,img_height))
                 self.segments.append(segs)
-                self.img_files.append(os.path.join(images_root,img['file_name']))
+                self.img_files.append(self.check_img_dir(os.path.join(images_root,img['file_name'])))
             #else: #这里先不考虑空图片
             #    self.labels.append(np.zeros((0, 5), dtype=np.float32))
         #print(len(self.img_files))
@@ -846,11 +849,11 @@ class LoadCOCO(LoadImagesAndLabels):
                 self.cat_id_map = {1:0,2:1,3:1}
             if test_mode:
                 images_root = append_datas[3]
-                coco = COCO(os.path.join(images_root,'annotations/crop_instances_default.json'))
+                coco = COCO(self.check_anns_dir(os.path.join(images_root,'annotations/crop_instances_default.json')))
                 for ImgId in coco.getImgIds():
 
                     img = coco.loadImgs([ImgId])[0]
-                    if not os.path.exists(os.path.join(images_root,"crop_images",img['file_name'])):
+                    if not os.path.exists(self.check_img_dir(os.path.join(images_root,"crop_images",img['file_name']))):
                         print(os.path.join(images_root,"crop_images",img['file_name']))
                         continue
                     
@@ -906,15 +909,15 @@ class LoadCOCO(LoadImagesAndLabels):
                         self.labels.append(np.array(boxes, dtype=np.float64))
                         self.shapes.append((img_width,img_height))
                         self.segments.append(segs)
-                        self.img_files.append(os.path.join(images_root,"crop_images",img['file_name']))
+                        self.img_files.append(self.check_img_dir(os.path.join(images_root,"crop_images",img['file_name'])))
             else:
                 for append_data in append_datas[:4]*2: #+append_datas[:3]: # repeat the data in the training process
                     images_root = append_data
-                    coco = COCO(os.path.join(images_root,'annotations/crop_instances_default.json'))
+                    coco = COCO(self.check_anns_dir(os.path.join(images_root,'annotations/crop_instances_default.json')))
                     for ImgId in coco.getImgIds():
 
                         img = coco.loadImgs([ImgId])[0]
-                        if not os.path.exists(os.path.join(images_root,"crop_images",img['file_name'])):
+                        if not os.path.exists(self.check_img_dir(os.path.join(images_root,"crop_images",img['file_name']))):
                             print(os.path.join(images_root,"crop_images",img['file_name']))
                             continue
                         
@@ -971,7 +974,7 @@ class LoadCOCO(LoadImagesAndLabels):
                             self.labels.append(np.array(boxes, dtype=np.float64))
                             self.shapes.append((img_width,img_height))
                             self.segments.append(segs)
-                            self.img_files.append(os.path.join(images_root,"crop_images",img['file_name']))
+                            self.img_files.append(self.check_img_dir(os.path.join(images_root,"crop_images",img['file_name'])))
             
         if True:#load the fp data from 2021 and 2022 xiangya videos
             append_fp_datas = ["/data2/qilei_chen/DATA/2021_2022gastro_cancers/2021_videos",
@@ -982,11 +985,11 @@ class LoadCOCO(LoadImagesAndLabels):
             self.cat_id_map = {1:1}
             if test_mode:
                 images_root = append_fp_datas[2]
-                coco = COCO(os.path.join(images_root,'fp_instances_default_test.json'))
+                coco = COCO(self.check_anns_dir(os.path.join(images_root,'fp_instances_default_test.json')))
                 for ImgId in coco.getImgIds():
 
                     img = coco.loadImgs([ImgId])[0]
-                    image_dir = os.path.join(images_root,img['file_name'])
+                    image_dir = self.check_img_dir(os.path.join(images_root,img['file_name']))
                     if not os.path.exists(image_dir):
                         print(image_dir)
                         continue
@@ -1045,11 +1048,11 @@ class LoadCOCO(LoadImagesAndLabels):
             else:
                 for append_data in append_fp_datas[:2]:
                     images_root = append_data
-                    coco = COCO(os.path.join(images_root,'fp_instances_default_train.json'))
+                    coco = COCO(self.check_anns_dir(os.path.join(images_root,'fp_instances_default_train.json')))
                     for ImgId in coco.getImgIds():
 
                         img = coco.loadImgs([ImgId])[0]
-                        image_dir = os.path.join(images_root,img['file_name'])
+                        image_dir = self.check_img_dir(os.path.join(images_root,img['file_name']))
                         if not os.path.exists(image_dir):
                             print(image_dir)
                             continue
@@ -1117,11 +1120,11 @@ class LoadCOCO(LoadImagesAndLabels):
             else:
                 for append_data in append_tp_datas:
                     images_root = append_data
-                    coco = COCO(os.path.join(images_root,'annotations','crop_instances_default.json'))
+                    coco = COCO(self.check_anns_dir(os.path.join(images_root,'annotations','crop_instances_default.json')))
                     for ImgId in coco.getImgIds():
 
                         img = coco.loadImgs([ImgId])[0]
-                        image_dir = os.path.join(images_root,'crop_images',img['file_name'])
+                        image_dir = self.check_img_dir(os.path.join(images_root,'crop_images',img['file_name']))
                         if not os.path.exists(image_dir):
                             print(image_dir)
                             continue
@@ -1183,7 +1186,7 @@ class LoadCOCO(LoadImagesAndLabels):
                 pass
             else:
                 ann_path = '/data2/zzhang/annotation/erosiveulcer_fine/trainfp1123.json'
-                coco = COCO(ann_path)
+                coco = COCO(self.check_anns_dir(ann_path))
                 data_root = Path(ann_path).parent
                 images_root = os.path.join(data_root,'train/images')
 
@@ -1219,7 +1222,7 @@ class LoadCOCO(LoadImagesAndLabels):
                 for ImgId in coco.getImgIds():
 
                     img = coco.loadImgs([ImgId])[0]
-                    if not os.path.exists(os.path.join(images_root,img['file_name'])):
+                    if not os.path.exists(self.check_img_dir(os.path.join(images_root,img['file_name']))):
                         #print(os.path.join(images_root,img['file_name']))
                         continue
                     
@@ -1273,10 +1276,10 @@ class LoadCOCO(LoadImagesAndLabels):
                         self.labels.append(np.array(boxes, dtype=np.float64))
                         self.shapes.append((img_width,img_height))
                         self.segments.append(segs)
-                        self.img_files.append(os.path.join(images_root,img['file_name']))          
+                        self.img_files.append(self.check_img_dir(os.path.join(images_root,img['file_name'])))          
 
 
-        if False: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練和測試過程中
+        if True: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練和測試過程中
             append_fp_data_dir = "/data2/qilei_chen/wj_fp_images1"
 
             select_cats_id = [1,]
@@ -1285,11 +1288,11 @@ class LoadCOCO(LoadImagesAndLabels):
             if test_mode:
                 ann_file = 'fp_instances_default_test.json'
             images_root = append_fp_data_dir
-            coco = COCO(os.path.join(images_root,ann_file))
+            coco = COCO(self.check_anns_dir(os.path.join(images_root,ann_file)))
             for ImgId in coco.getImgIds():
 
                 img = coco.loadImgs([ImgId])[0]
-                image_dir = os.path.join(images_root,img['file_name'][1:])
+                image_dir = self.check_img_dir(os.path.join(images_root,img['file_name'][1:]))
                 if not os.path.exists(image_dir):
                     print(image_dir)
                     continue
@@ -1365,7 +1368,23 @@ class LoadCOCO(LoadImagesAndLabels):
                 else:
                     for dataset_dir in dataset_dirs[1:]:
                         self.load_standard_gastro(dataset_dir,select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
-                
+                        ß
+        with_others = True        
+        if True: #将协和39段视频中挑选的两批远景图片数据集全部纳入训练过程
+            dataset_dirs = ['/home/ycao/DATASETS/gastro_cancer/xiehe_far_1',
+                            '/home/ycao/DATASETS/gastro_cancer/xiehe_far_2']
+            if with_others:
+                if test_mode:
+                    pass
+                else:
+                    for dataset_dir in dataset_dirs:
+                        self.load_standard_gastro(dataset_dir)
+            else:
+                if test_mode:
+                    pass
+                else:
+                    for dataset_dir in dataset_dirs:
+                        self.load_standard_gastro(dataset_dir,select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
         
         self.shapes = np.array(self.shapes, dtype=np.float64)
         #self.img_files = list(cache.keys())  # update
@@ -1444,11 +1463,11 @@ class LoadCOCO(LoadImagesAndLabels):
             pbar.close()
     def load_standard_gastro(self,data_path,select_cats_id = [1,2,3,4,5],cat_id_map = {1:0,2:1,3:1,4:0,5:0}):
             images_root = data_path
-            coco = COCO(os.path.join(images_root,'annotations','crop_instances_default.json'))
+            coco = COCO(self.check_anns_dir(os.path.join(images_root,'annotations','crop_instances_default.json')))
             for ImgId in coco.getImgIds():
 
                 img = coco.loadImgs([ImgId])[0]
-                image_dir = os.path.join(images_root,'crop_images',img['file_name'])
+                image_dir = self.check_img_dir(os.path.join(images_root,'crop_images',img['file_name']))
                 if not os.path.exists(image_dir):
                     print(image_dir)
                     continue
@@ -1504,6 +1523,26 @@ class LoadCOCO(LoadImagesAndLabels):
                     self.shapes.append((img_width,img_height))
                     self.segments.append(segs)
                     self.img_files.append(image_dir)
+
+    def check_anns_dir(self,ann_file_path):
+        if os.path.exists(ann_file_path):
+            return ann_file_path
+        elif os.path.exists(os.path.join(self.path27,'annotations',ann_file_path.replace("/","_"))):
+            return os.path.join(self.path27,'annotations',ann_file_path.replace("/","_"))
+        else:
+            print('Can not find the annotations file in:'+ann_file_path+' or '+ os.path.join(self.path27,'annotations',ann_file_path.replace("/","_")))
+            return ann_file_path
+    
+    def check_img_dir(self,img_dir):
+        if os.path.exists(img_dir):
+            return img_dir
+        elif os.path.exists(os.path.join(self.path27,'images',img_dir.replace("/","_"))):
+            return os.path.join(self.path27,'images',img_dir.replace("/","_"))
+        else:
+             print('So such image in:'+img_dir+' or '+ os.path.join(self.path27,'images',img_dir.replace("/","_")))
+             return img_dir
+            
+    
 class LoadROI(LoadImagesAndLabels):
     def __init__(self, path, img_size=640, batch_size=16, augment=False, hyp=None, rect=False, image_weights=False,
                  cache_images=False, single_cls=False, stride=32, pad=0.0, prefix=''):
