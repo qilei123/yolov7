@@ -1279,7 +1279,7 @@ class LoadCOCO(LoadImagesAndLabels):
                         self.img_files.append(self.check_img_dir(os.path.join(images_root,img['file_name'])))          
 
 
-        if True: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練和測試過程中
+        if False: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練和測試過程中
             append_fp_data_dir = "/data2/qilei_chen/wj_fp_images1"
 
             select_cats_id = [1,]
@@ -1350,7 +1350,7 @@ class LoadCOCO(LoadImagesAndLabels):
                     self.img_files.append(image_dir)
 
         with_others = False
-        if True: #将gastro8-12的5批数据纳入，其中4批用于训练，1批用于测试
+        if False: #将gastro8-12的5批数据纳入，其中4批用于训练，1批用于测试
             dataset_dirs = ["/data3/qilei_chen/DATA/gastro8-12/协和21-11月~2022-5癌变已标注/协和2021-11月_2022-5癌变_20221121", #该批数据用于测试
                             "/data3/qilei_chen/DATA/gastro8-12/2021-2022年癌变已标注/20221111/2021_2022_癌变_20221111/",
                             "/data3/qilei_chen/DATA/gastro8-12/低级别_2021_2022已标注/2021_2022_低级别_20221110/",
@@ -1369,7 +1369,7 @@ class LoadCOCO(LoadImagesAndLabels):
                     for dataset_dir in dataset_dirs[1:]:
                         self.load_standard_gastro(dataset_dir,select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
                         
-        with_others = False        
+        with_others = True        
         if True: #将协和39段视频中挑选的两批远景图片数据集全部纳入训练过程
             dataset_dirs = ['/home/ycao/DATASETS/gastro_cancer/xiehe_far_1',
                             '/home/ycao/DATASETS/gastro_cancer/xiehe_far_2']
