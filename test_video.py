@@ -46,7 +46,7 @@ def CropImg(image,roi=None):
 
 def process_videos():
 
-    gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=0)
+    gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=3)
 
     #gastro_disease_detector.ini_model(model_dir="single_category.pt")
     
@@ -112,7 +112,9 @@ def process_videos():
                 if len(det):
                     report = True
             if report:
-                frame_id_report_log.write(str(frame_id)+'\n')
+                frame_id_report_log.write(str(frame_id)+' #1\n')
+            else:
+                frame_id_report_log.write(str(frame_id)+' #0\n')    
             
             cv2.putText(frame, str(frame_id), (0, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255, 255, 255), 2)
             frame = gastro_disease_detector.show_result_on_image(frame,result,visible_ids=[0])            
