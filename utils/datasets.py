@@ -1279,75 +1279,83 @@ class LoadCOCO(LoadImagesAndLabels):
                         self.img_files.append(self.check_img_dir(os.path.join(images_root,img['file_name'])))          
 
 
-        if False: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練和測試過程中
+        if True: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練(和測試)過程中
             append_fp_data_dir = "/data2/qilei_chen/wj_fp_images1"
 
             select_cats_id = [1,]
             self.cat_id_map = {1:1}
-            ann_file = 'fp_instances_default_train.json'
+            
+            #ann_file = 'fp_instances_default_train.json'
+            #if test_mode:
+            #    ann_file = 'fp_instances_default_test.json'
+            
             if test_mode:
-                ann_file = 'fp_instances_default_test.json'
-            images_root = append_fp_data_dir
-            coco = COCO(self.check_anns_dir(os.path.join(images_root,ann_file)))
-            for ImgId in coco.getImgIds():
+                ann_files = []
+            else:
+                ann_files =['fp_instances_default_train.json','fp_instances_default_test.json']
+            for ann_file in ann_files:
+            
+                images_root = append_fp_data_dir
+                coco = COCO(self.check_anns_dir(os.path.join(images_root,ann_file)))
+                for ImgId in coco.getImgIds():
 
-                img = coco.loadImgs([ImgId])[0]
-                image_dir = self.check_img_dir(os.path.join(images_root,img['file_name'][1:]))
-                if not os.path.exists(image_dir):
-                    print(image_dir)
-                    continue
-                
-                #assert img['width'] == img['roi'][2]-img["roi"][0], "annotation error"
-                #assert img['height'] == img['roi'][3]-img["roi"][1], "annotation error"
+                    img = coco.loadImgs([ImgId])[0]
+                    image_dir = self.check_img_dir(os.path.join(images_root,img['file_name'][1:]))
+                    if not os.path.exists(image_dir):
+                        print(image_dir)
+                        continue
+                    
+                    #assert img['width'] == img['roi'][2]-img["roi"][0], "annotation error"
+                    #assert img['height'] == img['roi'][3]-img["roi"][1], "annotation error"
 
-                img_width,img_height = img['width'],img['height']
+                    img_width,img_height = img['width'],img['height']
 
-                annIds =  coco.getAnnIds(ImgId)
-                anns = coco.loadAnns(annIds)
+                    annIds =  coco.getAnnIds(ImgId)
+                    anns = coco.loadAnns(annIds)
 
-                boxes = []
-                segs = []
-                for ann in anns:
-                    if ann['category_id'] in select_cats_id:
-                        
-                        box = [self.cat_id_map[ann['category_id']],
-                                (ann['bbox'][0]+ann['bbox'][2]/2)/img_width,
-                                (ann['bbox'][1]+ann['bbox'][3]/2)/img_height,
-                                ann['bbox'][2]/img_width,
-                                ann['bbox'][3]/img_height]
-                        '''
-                        box = []
-                        box.append(cat_id_map[ann['category_id']])
-                        '''
-                        seg = []
-                        #seg.append(self.cat_id_map[ann['category_id']])
+                    boxes = []
+                    segs = []
+                    for ann in anns:
+                        if ann['category_id'] in select_cats_id:
+                            
+                            box = [self.cat_id_map[ann['category_id']],
+                                    (ann['bbox'][0]+ann['bbox'][2]/2)/img_width,
+                                    (ann['bbox'][1]+ann['bbox'][3]/2)/img_height,
+                                    ann['bbox'][2]/img_width,
+                                    ann['bbox'][3]/img_height]
+                            '''
+                            box = []
+                            box.append(cat_id_map[ann['category_id']])
+                            '''
+                            seg = []
+                            #seg.append(self.cat_id_map[ann['category_id']])
 
-                        #ann_segmentation_minrect = seg2minrect(ann['segmentation'][0])
-                        if 'segmentation' in ann and len(ann['segmentation']):
-                            for coord_index,coord in enumerate(ann['segmentation'][0]):
-                                if coord_index%2==1:
-                                    
-                                    #box.append(ann_segmentation_minrect[coord_index-1]/img_width)
-                                    #box.append(coord/img_height)
+                            #ann_segmentation_minrect = seg2minrect(ann['segmentation'][0])
+                            if 'segmentation' in ann and len(ann['segmentation']):
+                                for coord_index,coord in enumerate(ann['segmentation'][0]):
+                                    if coord_index%2==1:
+                                        
+                                        #box.append(ann_segmentation_minrect[coord_index-1]/img_width)
+                                        #box.append(coord/img_height)
 
-                                    seg.append(ann['segmentation'][0][coord_index-1]/img_width)
-                                    seg.append(coord/img_height)
+                                        seg.append(ann['segmentation'][0][coord_index-1]/img_width)
+                                        seg.append(coord/img_height)
 
-                                    #box.append(ann_segmentation_minrect[coord_index-1])
-                                    #box.append(coord)
+                                        #box.append(ann_segmentation_minrect[coord_index-1])
+                                        #box.append(coord)
 
-                                    #seg.append(ann['segmentation'][0][coord_index-1])
-                                    #seg.append(coord)
-                        
-                        boxes.append(box)
-                        segs.append(np.array(seg, dtype=np.float32).reshape(-1, 2))
+                                        #seg.append(ann['segmentation'][0][coord_index-1])
+                                        #seg.append(coord)
+                            
+                            boxes.append(box)
+                            segs.append(np.array(seg, dtype=np.float32).reshape(-1, 2))
 
-                if len(boxes)>0:
-                    self.instance_n+=len(boxes)
-                    self.labels.append(np.array(boxes, dtype=np.float64))
-                    self.shapes.append((img_width,img_height))
-                    self.segments.append(segs)
-                    self.img_files.append(image_dir)
+                    if len(boxes)>0:
+                        self.instance_n+=len(boxes)
+                        self.labels.append(np.array(boxes, dtype=np.float64))
+                        self.shapes.append((img_width,img_height))
+                        self.segments.append(segs)
+                        self.img_files.append(image_dir)
 
         with_others = False
         if False: #将gastro8-12的5批数据纳入，其中4批用于训练，1批用于测试
