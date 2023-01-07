@@ -1,0 +1,1 @@
+python train_org.py --workers 64 --device 0,1,2,3 --batch-size 32 --data data/wj_v1_with_fp.yaml --img 640 640 --cfg cfg/training/yolov7x-wj_v1_with_fp.yaml --weights 'yolov7x.pt' --name yolov7x-wj_v1_with_fp --hyp data/hyp.scratch.custom.yaml --project out/WJ_V1_with_mfp6-1 --exist-ok
