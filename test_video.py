@@ -50,7 +50,7 @@ def process_videos():
 
     #gastro_disease_detector.ini_model(model_dir="single_category.pt")
     
-    model_name ='WJ_V1_with_mfp4-4-8'
+    model_name ='WJ_V1_with_mfp5-1'
     
     model_pt_name = 'epoch_299'
     
@@ -107,17 +107,22 @@ def process_videos():
 
             result = gastro_disease_detector.predict(frame, formate_result = False)
             
-            report = False
-            for i, det in enumerate(result):
-                if len(det):
-                    report = True
-            if report:
-                frame_id_report_log.write(str(frame_id)+' #1\n')
-            else:
-                frame_id_report_log.write(str(frame_id)+' #0\n')    
+            #report = False
+            #for i, det in enumerate(result):
+            #    if len(det):
+            #        report = True
+            #if report:
+            #    frame_id_report_log.write(str(frame_id)+' #1\n')
+            #else:
+            #    frame_id_report_log.write(str(frame_id)+' #0\n')    
             
             cv2.putText(frame, str(frame_id), (0, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255, 255, 255), 2)
-            frame = gastro_disease_detector.show_result_on_image(frame,result,visible_ids=[0])            
+            frame,positive = gastro_disease_detector.show_result_on_image_positive(frame,result,visible_ids=[0])  
+            
+            if positive:
+                frame_id_report_log.write(str(frame_id)+' #1\n')
+            else:
+                frame_id_report_log.write(str(frame_id)+' #0\n')            
 
             video_writer.write(frame)
 

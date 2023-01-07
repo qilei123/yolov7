@@ -133,7 +133,27 @@ class GastroDiseaseDetect():
             cv2.imwrite(save_img, image)
 
         return image
-        
+    def show_result_on_image_positive(self, image, pred, save_img:str = '',visible_ids:list = []):
+        gn = torch.tensor(image.shape)[[1, 0, 1, 0]]  # normalization gain whwh
+
+        # Get names and colors
+        names = self.model.module.names if hasattr(self.model, 'module') else self.model.names
+        colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
+
+        positive =False
+        for i, det in enumerate(pred):
+            if len(det):
+                # Write results
+                for *xyxy, conf, cls in reversed(det):
+                    # Add bbox to image
+                    if len(visible_ids)==0 or (len(visible_ids) and int(cls) in visible_ids):
+                        label = f'{names[int(cls)]} {conf:.2f}'
+                        plot_one_box(xyxy, image, label=label, color=colors[int(cls)], line_thickness=1)
+                        positive = True
+        if save_img:
+            cv2.imwrite(save_img, image)
+
+        return image , positive       
 
     #private for result formate
     def __formate_result(self,det_result): #transfer predict results into required formate
