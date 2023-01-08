@@ -50,11 +50,11 @@ def process_videos():
 
     #gastro_disease_detector.ini_model(model_dir="single_category.pt")
     
-    model_name ='WJ_V1_with_mfp5-2'
+    model_name ='WJ_V1_with_mfp6-1'
     
     model_pt_name = 'best'
     
-    model_dir = 'out/'+model_name+'/yolov7-wj_v1_with_fp/weights/'+model_pt_name+'.pt'
+    model_dir = 'out/'+model_name+'/yolov7x-wj_v1_with_fp/weights/'+model_pt_name+'.pt'
     
     gastro_disease_detector.ini_model(model_dir=model_dir)
 
