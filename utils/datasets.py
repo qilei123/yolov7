@@ -1847,9 +1847,9 @@ class LoadCOCOv2(LoadImagesAndLabels):
                 
                 self.load_standard_gastro(data_list[0],select_cats_id=[5],cat_id_map={5:0}) #load more tp samples
                 
-                self.load_standard_gastro(data_list[0],select_cats_id=[5],cat_id_map={5:0}) #load more tp samples
+                #self.load_standard_gastro(data_list[0],select_cats_id=[5],cat_id_map={5:0}) #load more tp samples
                 
-        times_tp = 4
+        times_tp = 3
         if True:#load tp dataset from 2021 and 2022 xiangya videos
             
             append_datas = ["/data2/qilei_chen/DATA/2021_2022gastro_cancers/2021_1",
@@ -2129,7 +2129,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
                             self.segments.append(segs)
                             self.img_files.append(image_dir)            
 
-        times_tp = 4
+        times_tp = 3
         if True: # add the 协和2015-2021年数据_append data
             append_tp_datas = ["/data2/qilei_chen/DATA/WJ_V1/v1_append_cancer",
                             "/data2/qilei_chen/DATA/WJ_V1/v1_append_high_level"]
@@ -2379,7 +2379,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
                         self.img_files.append(image_dir)
 
         with_others = True #训练过程中是否将负样本也纳入进去
-        times_tp = 4
+        times_tp = 3
         if True: #将gastro8-12的5批数据纳入，其中4批用于训练，1批用于测试
             dataset_dirs = ["/data3/qilei_chen/DATA/gastro8-12/协和21-11月~2022-5癌变已标注/协和2021-11月_2022-5癌变_20221121", #该批数据用于测试
                             "/data3/qilei_chen/DATA/gastro8-12/2021-2022年癌变已标注/20221111/2021_2022_癌变_20221111/",
@@ -2397,10 +2397,28 @@ class LoadCOCOv2(LoadImagesAndLabels):
                         self.load_standard_gastro(dataset_dir,select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
                         
         with_others = True
-        times_tp = 4        
+        times_tp = 3        
         if True: #将协和39段视频中挑选的两批远景图片数据集全部纳入训练过程
             dataset_dirs = ['/home/ycao/DATASETS/gastro_cancer/xiehe_far_1',
                             '/home/ycao/DATASETS/gastro_cancer/xiehe_far_2']
+            if with_others:
+                if test_mode:
+                    pass
+                else:
+                    for dataset_dir in dataset_dirs*times_tp:
+                        self.load_standard_gastro(dataset_dir)
+            else:
+                if test_mode:
+                    pass
+                else:
+                    for dataset_dir in dataset_dirs*times_tp:
+                        self.load_standard_gastro(dataset_dir,select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
+
+        with_others = True
+        times_tp = 3        
+        if True: #将湘雅2021-2022视频中挑选的两批远景图片数据集全部纳入训练过程
+            dataset_dirs = ['/home/ycao/DATASETS/gastro_cancer/xiangya_far_2021',
+                            '/home/ycao/DATASETS/gastro_cancer/xiangya_far_2022']
             if with_others:
                 if test_mode:
                     pass
