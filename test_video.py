@@ -526,12 +526,52 @@ def generate_fp_coco1():
     with open(os.path.join(data_dir,"fp_instances_default_train1.json"), "w") as outfile:
         json.dump(temp_coco,outfile)
 
+def generate_test_video_labels():
+    
+    videos_periods = open('data_gc/videos_test/video_labels.txt')
+    
+    video_folder = ''
+    
+    line = videos_periods.readline()
+    
+    while line:
+        records = line.split('\t')
+        
+        if len(records) == 1:
+            video_folder = records[0].replace("\n", "")
+        else:
+            cap = cv2.VideoCapture(os.path.join('data_gc/videos_test',video_folder,records[0]))
+            fps = cap.get(cv2.CAP_PROP_FPS)
+            frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+            
+            video_label = open(os.path.join('data_gc/videos_test',video_folder,records[0]+'.txt'), "w")
+            
+            periods = []
+            
+            for i,record in enumerate(records):
+                if i % 2==1 and '-' in record:
+                    time_stamps = record.split("-")
+                    periods.append([t2s(time_stamps[0])*fps,t2s(time_stamps[1])*fps])
+                    
+            for i in range(int(frame_count)):
+                label = 0
+                for period in periods:
+                    if i>period[0] and i <period[1]:
+                        label=1
+                line_str = str(i+1) + " #" + str(label) + "\n"
+                video_label.write(line_str)        
+        
+        line = videos_periods.readline()
+
 if __name__ == '__main__':
-    process_videos()
+    #process_videos()
     #extract_frames()
     #reprocess_images()
     #print(parse_periods())
     #process_videos_xiangya()
     #generate_fp_coco()
     #generate_fp_coco1()
+    
+    generate_test_video_labels()
+    
     pass
