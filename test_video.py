@@ -50,11 +50,11 @@ def process_videos():
 
     #gastro_disease_detector.ini_model(model_dir="single_category.pt")
     
-    model_name ='WJ_V1_with_mfp6-1'
+    model_name ='WJ_V1_with_mfp5-4'
     
     model_pt_name = 'best'
     
-    model_dir = 'out/'+model_name+'/yolov7x-wj_v1_with_fp/weights/'+model_pt_name+'.pt'
+    model_dir = 'out/'+model_name+'/yolov7-wj_v1_with_fp/weights/'+model_pt_name+'.pt'
     
     gastro_disease_detector.ini_model(model_dir=model_dir)
 
@@ -564,7 +564,7 @@ def generate_test_video_labels():
         line = videos_periods.readline()
 
 if __name__ == '__main__':
-    #process_videos()
+    process_videos()
     #extract_frames()
     #reprocess_images()
     #print(parse_periods())
@@ -572,6 +572,6 @@ if __name__ == '__main__':
     #generate_fp_coco()
     #generate_fp_coco1()
     
-    generate_test_video_labels()
+    #generate_test_video_labels()
     
     pass
