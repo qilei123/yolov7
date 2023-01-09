@@ -2432,6 +2432,12 @@ class LoadCOCOv2(LoadImagesAndLabels):
                     for dataset_dir in dataset_dirs*times_tp:
                         self.load_standard_gastro(dataset_dir,select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
         
+      
+        if True: #将xiangya_202209_202211纳入测试集合,这里的图片出自三段测试视频
+            dataset_dirs = ['/home/ycao/DATASETS/gastro_cancer/xiangya_202209_202211','']
+            if test_mode:
+                self.load_standard_gastro(dataset_dirs[0],select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
+
         self.shapes = np.array(self.shapes, dtype=np.float64)
         #self.img_files = list(cache.keys())  # update
         #self.label_files = img2label_paths(cache.keys())  # update

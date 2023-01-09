@@ -224,6 +224,7 @@ if __name__=="__main__":
     #crop_wg(anno_dir="/data3/qilei_chen/DATA/gastro8-12/协和2022_第二批胃早癌视频裁图已标注/协和_2022_癌变_2_20221117")
     #crop_wg(anno_dir='/home/ycao/DATASETS/gastro_cancer/xiehe_far_1')
     #crop_wg(anno_dir='/home/ycao/DATASETS/gastro_cancer/xiehe_far_2')
-    crop_wg(anno_dir='/home/ycao/DATASETS/gastro_cancer/xiangya_far_2021')
-    crop_wg(anno_dir='/home/ycao/DATASETS/gastro_cancer/xiangya_far_2022')
+    #crop_wg(anno_dir='/home/ycao/DATASETS/gastro_cancer/xiangya_far_2021')
+    #crop_wg(anno_dir='/home/ycao/DATASETS/gastro_cancer/xiangya_far_2022')
+    crop_wg(anno_dir='/home/ycao/DATASETS/gastro_cancer/xiangya_202209_202211')
     
