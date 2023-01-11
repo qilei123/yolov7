@@ -78,7 +78,7 @@ def load_and_eval():
     
     gt_files = sorted(glob.glob(os.path.join(data_dir,"xiehe2111_2205/*.mp4.txt")))
     
-    pd_files = sorted(glob.glob(os.path.join(data_dir,'xiehe2111_2205_WJ_V1_with_mfp6-1_best/*.mp4.txt')))
+    pd_files = sorted(glob.glob(os.path.join(data_dir,'xiehe2111_2205_WJ_V1_with_mfp5-2_best/*.mp4.txt')))
     
     A_recalls = 0
     
@@ -87,7 +87,7 @@ def load_and_eval():
     for gt_file,pd_file in zip(gt_files,pd_files):
         
         gt_periods = periods_filter(get_positive_periods(gt_file))
-        pd_periods = periods_filter(get_positive_periods(pd_file),3)
+        pd_periods = periods_filter(get_positive_periods(pd_file),2)
         
         r,p = compare_between_2periods(gt_periods,pd_periods)
         
