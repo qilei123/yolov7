@@ -46,8 +46,8 @@ def periods_IOU(period1,period2):
     overlap_end = min(period1[1],period2[1])
     
     overlap = max(overlap_end - overlap_start,0)
-    
-    return overlap/(p1+p2-overlap_start),overlap/p1,overlap/p2
+    min_value = 0.000000001
+    return overlap/(p1+p2-overlap_start+min_value),overlap/(p1+min_value),overlap/(p2+min_value)
     
 
 def compare_between_2periods(gt_periods,pd_periods):
@@ -78,13 +78,15 @@ def load_and_eval():
     
     gt_files = sorted(glob.glob(os.path.join(data_dir,"xiehe2111_2205/*.mp4.txt")))
     
-    pd_files = sorted(glob.glob(os.path.join(data_dir,'xiehe2111_2205_WJ_V1_with_mfp5-2_best/*.mp4.txt')))
+    pd_files = sorted(glob.glob(os.path.join(data_dir,'xiehe2111_2205_WJ_V1_with_mfp3-0-0_best/*.mp4.txt')))
     
     A_recalls = 0
     
     A_precisions = 0
     
     for gt_file,pd_file in zip(gt_files,pd_files):
+        
+        print(os.path.basename(gt_file))
         
         gt_periods = periods_filter(get_positive_periods(gt_file))
         pd_periods = periods_filter(get_positive_periods(pd_file),2)
