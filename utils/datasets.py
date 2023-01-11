@@ -1715,7 +1715,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         # images: data_root/images/*
         self.path27 = '/home/ycao/DEVELOPMENTS/yolov7/data_gc/gastro_cancer_v66'
         
-        times_tp = 2
+        
         path = os.path.basename(path).replace("_", "/")
         coco = COCO(self.check_anns_dir(path)) 
         
@@ -1833,6 +1833,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
             #[cache.pop(k) for k in ('hash', 'version', 'msgs')]  # remove items
             #labels, shapes, self.segments = zip(*cache.values())
             #self.labels = list(labels)
+            
+        times_tp = 1
         if True:#协和2015-2021年数据+zz_allothers
             data_list= ['/home/ycao/DEVELOPMENTS/yolov7/data_gc/gastro_cancer_v66/annotations/_data2_zzhang_annotation_erosiveulcer_fine_trainfp0927.json',
                         '/home/ycao/DEVELOPMENTS/yolov7/data_gc/gastro_cancer_v66/annotations/_data2_zzhang_annotation_erosiveulcer_fine_test0928.json']
@@ -1843,13 +1845,14 @@ class LoadCOCOv2(LoadImagesAndLabels):
                 
                 self.load_standard_gastro(data_list[0],cat_id_map={1:1,2:1,3:1,4:1,5:0})
                 
-                self.load_standard_gastro(data_list[0],select_cats_id=[5],cat_id_map={5:0}) #load more tp samples
-                
-                self.load_standard_gastro(data_list[0],select_cats_id=[5],cat_id_map={5:0}) #load more tp samples
+                for i in range(times_tp-1):
+                    self.load_standard_gastro(data_list[0],select_cats_id=[5],cat_id_map={5:0}) #load more tp samples
                 
                 #self.load_standard_gastro(data_list[0],select_cats_id=[5],cat_id_map={5:0}) #load more tp samples
                 
-        times_tp = 3
+                #self.load_standard_gastro(data_list[0],select_cats_id=[5],cat_id_map={5:0}) #load more tp samples
+                
+        times_tp = 2
         if True:#load tp dataset from 2021 and 2022 xiangya videos
             
             append_datas = ["/data2/qilei_chen/DATA/2021_2022gastro_cancers/2021_1",
@@ -2129,7 +2132,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
                             self.segments.append(segs)
                             self.img_files.append(image_dir)            
 
-        times_tp = 3
+        times_tp = 1
         if True: # add the 协和2015-2021年数据_append data
             append_tp_datas = ["/data2/qilei_chen/DATA/WJ_V1/v1_append_cancer",
                             "/data2/qilei_chen/DATA/WJ_V1/v1_append_high_level"]
@@ -2201,106 +2204,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
                             self.shapes.append((img_width,img_height))
                             self.segments.append(segs)
                             self.img_files.append(image_dir)
-
-        if False: #利用張璋整理的1123号之前搜集到的所有数据再次进行训练，存在和前面數據重複的問題,因此暂时不使用
-            if test_mode:
-                pass
-            else:
-                ann_path = '/data2/zzhang/annotation/erosiveulcer_fine/trainfp1123.json'
-                coco = COCO(self.check_anns_dir(ann_path))
-                data_root = Path(ann_path).parent
-                images_root = os.path.join(data_root,'train/images')
-
-                if strategy==1:#use others only
-                    self.cls_names = ['cancer','others']
-                    if self.cls_names:
-                        select_cats_id = coco.getCatIds(catNms=self.cls_names)
-                    else:
-                        select_cats_id = coco.getCatIds()
-
-                    for new_cat_id,cat_id in enumerate(select_cats_id):
-                        self.cat_id_map[cat_id] = new_cat_id
-
-                    if test_mode:
-                        self.cat_id_map = {3:0}
-                    else:
-                        self.cat_id_map = {3:1,5:0}
-
-                elif strategy==2:#use all others as fp
-                    self.cls_names = ['erosive','ulcer','others','hemorrhage','cancer','low','high']
-                    if self.cls_names:
-                        select_cats_id = coco.getCatIds(catNms=self.cls_names)
-                    else:
-                        select_cats_id = coco.getCatIds()
-
-                    # low_level is 0, all others are 1
-                    for new_cat_id,cat_id in enumerate(select_cats_id):
-                        self.cat_id_map[cat_id] = new_cat_id
-
-
-                    self.cat_id_map = {1:1,2:1,3:1,4:1,5:0,6:0,7:0}
-                    
-                for ImgId in coco.getImgIds():
-
-                    img = coco.loadImgs([ImgId])[0]
-                    if not os.path.exists(self.check_img_dir(os.path.join(images_root,img['file_name']))):
-                        #print(os.path.join(images_root,img['file_name']))
-                        continue
-                    
-                    #assert img['width'] == img['roi'][2]-img["roi"][0], "annotation error"
-                    #assert img['height'] == img['roi'][3]-img["roi"][1], "annotation error"
-
-                    img_width,img_height = img['width'],img['height']
-
-                    annIds =  coco.getAnnIds(ImgId)
-                    anns = coco.loadAnns(annIds)
-
-                    boxes = []
-                    segs = []
-                    for ann in anns:
-                        if ann['category_id'] in select_cats_id:
-                            
-                            box = [self.cat_id_map[ann['category_id']],
-                                    (ann['bbox'][0]+ann['bbox'][2]/2)/img_width,
-                                    (ann['bbox'][1]+ann['bbox'][3]/2)/img_height,
-                                    ann['bbox'][2]/img_width,
-                                    ann['bbox'][3]/img_height]
-                            '''
-                            box = []
-                            box.append(cat_id_map[ann['category_id']])
-                            '''
-                            seg = []
-                            #seg.append(self.cat_id_map[ann['category_id']])
-
-                            #ann_segmentation_minrect = seg2minrect(ann['segmentation'][0])
-                            if 'segmentation' in ann and len(ann['segmentation']):
-                                for coord_index,coord in enumerate(ann['segmentation'][0]):
-                                    if coord_index%2==1:
-                                        
-                                        #box.append(ann_segmentation_minrect[coord_index-1]/img_width)
-                                        #box.append(coord/img_height)
-
-                                        seg.append(ann['segmentation'][0][coord_index-1]/img_width)
-                                        seg.append(coord/img_height)
-
-                                        #box.append(ann_segmentation_minrect[coord_index-1])
-                                        #box.append(coord)
-
-                                        #seg.append(ann['segmentation'][0][coord_index-1])
-                                        #seg.append(coord)
-                            
-                            boxes.append(box)
-                            segs.append(np.array(seg, dtype=np.float32).reshape(-1, 2))
-
-                    if len(boxes)>0:
-                        self.instance_n+=len(boxes)
-                        self.labels.append(np.array(boxes, dtype=np.float64))
-                        self.shapes.append((img_width,img_height))
-                        self.segments.append(segs)
-                        self.img_files.append(self.check_img_dir(os.path.join(images_root,img['file_name'])))          
-
-
-        if True: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練過程中
+       
+        if False: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練過程中
             append_fp_data_dir = "/data2/qilei_chen/wj_fp_images1"
 
             select_cats_id = [1,]
@@ -2380,7 +2285,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         with_others = True #训练过程中是否将负样本也纳入进去
         times_tp = 3
-        if True: #将gastro8-12的5批数据纳入，其中4批用于训练，1批用于测试
+        if False: #将gastro8-12的5批数据纳入，其中4批用于训练，1批用于测试
             dataset_dirs = ["/data3/qilei_chen/DATA/gastro8-12/协和21-11月~2022-5癌变已标注/协和2021-11月_2022-5癌变_20221121", #该批数据用于测试
                             "/data3/qilei_chen/DATA/gastro8-12/2021-2022年癌变已标注/20221111/2021_2022_癌变_20221111/",
                             "/data3/qilei_chen/DATA/gastro8-12/低级别_2021_2022已标注/2021_2022_低级别_20221110/",
@@ -2397,7 +2302,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
                         self.load_standard_gastro(dataset_dir,select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
                         
         with_others = True
-        times_tp = 3        
+        times_tp = 1        
         if True: #将协和39段视频中挑选的两批远景图片数据集全部纳入训练过程
             dataset_dirs = ['/home/ycao/DATASETS/gastro_cancer/xiehe_far_1',
                             '/home/ycao/DATASETS/gastro_cancer/xiehe_far_2']
@@ -2415,7 +2320,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
                         self.load_standard_gastro(dataset_dir,select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
 
         with_others = True
-        times_tp = 3        
+        times_tp = 1        
         if True: #将湘雅2021-2022视频中挑选的两批远景图片数据集全部纳入训练过程
             dataset_dirs = ['/home/ycao/DATASETS/gastro_cancer/xiangya_far_2021',
                             '/home/ycao/DATASETS/gastro_cancer/xiangya_far_2022']
@@ -2432,7 +2337,6 @@ class LoadCOCOv2(LoadImagesAndLabels):
                     for dataset_dir in dataset_dirs*times_tp:
                         self.load_standard_gastro(dataset_dir,select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
         
-      
         if True: #将xiangya_202209_202211纳入测试集合,这里的图片出自三段测试视频
             dataset_dirs = ['/home/ycao/DATASETS/gastro_cancer/xiangya_202209_202211','']
             if test_mode:
