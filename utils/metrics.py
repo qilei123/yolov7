@@ -8,6 +8,7 @@ import torch
 
 from . import general
 
+svalue = 0.00000001
 
 def fitness(x):
     # Model fitness as a weighted combination of metrics
@@ -16,14 +17,18 @@ def fitness(x):
 
 def fitness_f1(x):
     # Model fitness as a weighted combination of metrics
-    f1 = (2*x[:,0]*x[:,1])/(x[:,0]+x[:,1]+0.0001)
+    f1 = (2*x[:,0]*x[:,1])/(x[:,0]+x[:,1]+svalue)
     return f1
 
 def fitness_f2(x):
     # Model fitness as a weighted combination of metrics
-    f2 = (5*x[:,0]*x[:,1])/(4*x[:,0]+x[:,1]+0.0001)
+    f2 = (5*x[:,0]*x[:,1])/(4*x[:,0]+x[:,1]+svalue)
     return f2
 
+def fitness_f05(x):
+    # Model fitness as a weighted combination of metrics
+    f05 = (1.25*x[:,0]*x[:,1])/(0.25*x[:,0]+x[:,1]+svalue)
+    return f05
 
 def ap_per_class(tp, conf, pred_cls, target_cls, plot=False, save_dir='.', names=()):
     """ Compute the average precision, given the recall and precision curves.

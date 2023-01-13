@@ -28,7 +28,7 @@ from utils.autoanchor import check_anchors
 from utils.datasets import create_dataloader
 from utils.general import labels_to_class_weights, increment_path, labels_to_image_weights, init_seeds, \
     fitness, strip_optimizer, get_latest_run, check_dataset, check_file, check_git_status, check_img_size, \
-    check_requirements, print_mutation, set_logging, one_cycle, colorstr
+    check_requirements, print_mutation, set_logging, one_cycle, colorstr ,fitness_f1, fitness_f2, fitness_f05
 from utils.google_utils import attempt_download
 from utils.loss import ComputeLoss, ComputeLossOTA
 from utils.plots import plot_images, plot_labels, plot_results, plot_evolution
@@ -48,6 +48,13 @@ def train(hyp, opt, device, tb_writer=None):
     wdir.mkdir(parents=True, exist_ok=True)  # make dir
     last = wdir / 'last.pt'
     best = wdir / 'best.pt'
+    
+    best_f1 = wdir / 'best_f1.pt'
+    
+    best_f2 = wdir / 'best_f2.pt'
+    
+    best_f05 = wdir / 'best_f05.pt'
+    
     results_file = save_dir / 'results.txt'
 
     # Save run settings
@@ -201,6 +208,7 @@ def train(hyp, opt, device, tb_writer=None):
 
     # Resume
     start_epoch, best_fitness = 0, 0.0
+    best_fitness1,best_fitness2,best_fitness05 = 0.0,0.0,0.0
     if pretrained:
         # Optimizer
         if ckpt['optimizer'] is not None:
@@ -304,7 +312,7 @@ def train(hyp, opt, device, tb_writer=None):
                 f'Logging results to {save_dir}\n'
                 f'Starting training for {epochs} epochs...')
     torch.save(model, wdir / 'init.pt')
-    best_epoch_index = 0
+    best_epoch_index,best_f1_epoch_index,best_f2_epoch_index,best_f05_epoch_index = 0,0,0,0
     for epoch in range(start_epoch, epochs):  # epoch ------------------------------------------------------------------
         model.train()
 
@@ -448,6 +456,19 @@ def train(hyp, opt, device, tb_writer=None):
             fi = fitness(np.array(results).reshape(1, -1))  # weighted combination of [P, R, mAP@.5, mAP@.5-.95]
             if fi > best_fitness:
                 best_fitness = fi
+                
+            f1 = fitness_f1(np.array(results).reshape(1, -1))
+            if f1 > best_fitness1:
+                best_fitness1 = f1
+                
+            f2 = fitness_f2(np.array(results).reshape(1, -1))
+            if f2 > best_fitness2:
+                best_fitness2 = f2
+                
+            f05 = fitness_f05(np.array(results).reshape(1, -1))
+            if f05 > best_fitness05:
+                best_fitness05 = f05     
+            
             wandb_logger.end_epoch(best_result=best_fitness == fi)
 
             # Save model
@@ -464,6 +485,23 @@ def train(hyp, opt, device, tb_writer=None):
 
                 # Save last, best and delete
                 torch.save(ckpt, last)
+                
+                if best_fitness1 == f1:
+                    best_f1_epoch_index = epoch
+                    ckpt['best_fitness1'] = best_fitness1
+                    torch.save(ckpt, best_f1)
+
+                if best_fitness2 == f2:
+                    best_f2_epoch_index = epoch
+                    ckpt['best_fitness2'] = best_fitness2
+                    torch.save(ckpt, best_f2)
+                    
+                if best_fitness05 == f05:
+                    best_f05_epoch_index = epoch
+                    ckpt['best_fitness05'] = best_fitness05
+                    torch.save(ckpt, best_f05)
+                
+                
                 if best_fitness == fi:
                     best_epoch_index = epoch
                     torch.save(ckpt, best)
@@ -480,7 +518,8 @@ def train(hyp, opt, device, tb_writer=None):
                         wandb_logger.log_model(
                             last.parent, opt, epoch, fi, best_model=best_fitness == fi)
                 del ckpt
-        print('best_epoch_index:'+str(best_epoch_index))
+        print('best_epoch_index:{0},best_f1_epoch_index:{1},best_f2_epoch_index:{2},best_f05_epoch_index:{3}'
+              .format(best_epoch_index,best_f1_epoch_index,best_f2_epoch_index,best_f05_epoch_index))
         # end epoch ----------------------------------------------------------------------------------------------------
     # end training
     if rank in [-1, 0]:

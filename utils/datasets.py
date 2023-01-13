@@ -1715,6 +1715,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         # images: data_root/images/*
         self.path27 = '/home/ycao/DEVELOPMENTS/yolov7/data_gc/gastro_cancer_v66'
         
+        self.datasets_count = []#按顺序记录每个数据集的个数
         
         path = os.path.basename(path).replace("_", "/")
         coco = COCO(self.check_anns_dir(path)) 
@@ -1851,6 +1852,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
                 #self.load_standard_gastro(data_list[0],select_cats_id=[5],cat_id_map={5:0}) #load more tp samples
                 
                 #self.load_standard_gastro(data_list[0],select_cats_id=[5],cat_id_map={5:0}) #load more tp samples
+        
+        self.datasets_count.append(len(self.img_files))
                 
         times_tp = 2
         if True:#load tp dataset from 2021 and 2022 xiangya videos
@@ -2005,6 +2008,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
                             self.shapes.append((img_width,img_height))
                             self.segments.append(segs)
                             self.img_files.append(self.check_img_dir(os.path.join(images_root,"crop_images",img['file_name'])))
+        
+        self.datasets_count.append(len(self.img_files))
             
         if True:#load the fp data from 2021 and 2022 xiangya videos
             append_fp_datas = ["/data2/qilei_chen/DATA/2021_2022gastro_cancers/2021_videos/fp_instances_default_train.json",
@@ -2132,6 +2137,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
                             self.segments.append(segs)
                             self.img_files.append(image_dir)            
 
+        self.datasets_count.append(len(self.img_files))
+
         times_tp = 1
         if True: # add the 协和2015-2021年数据_append data
             append_tp_datas = ["/data2/qilei_chen/DATA/WJ_V1/v1_append_cancer",
@@ -2204,8 +2211,12 @@ class LoadCOCOv2(LoadImagesAndLabels):
                             self.shapes.append((img_width,img_height))
                             self.segments.append(segs)
                             self.img_files.append(image_dir)
-       
-        if False: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練過程中
+        
+        self.datasets_count.append(len(self.img_files))
+        
+        #xl65versions = ['org','m111']
+        xl65v = 'm111'
+        if True: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練過程中
             append_fp_data_dir = "/data2/qilei_chen/wj_fp_images1"
 
             select_cats_id = [1,]
@@ -2227,6 +2238,10 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
                     img = coco.loadImgs([ImgId])[0]
                     image_dir = self.check_img_dir(os.path.join(images_root,img['file_name'][1:]))
+                    
+                    if xl65v=='m111':
+                        image_dir = image_dir.replace("/images/","/xl65_images_manual_111/")
+                    
                     if not os.path.exists(image_dir):
                         print(image_dir)
                         continue
@@ -2283,6 +2298,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
                         self.segments.append(segs)
                         self.img_files.append(image_dir)
 
+        self.datasets_count.append(len(self.img_files)) #利用这个数据的存储实现每次epoch过程中随机挑选一部分m111的图片数据
+
         with_others = True #训练过程中是否将负样本也纳入进去
         times_tp = 3
         if False: #将gastro8-12的5批数据纳入，其中4批用于训练，1批用于测试
@@ -2300,6 +2317,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
                 else:
                     for dataset_dir in dataset_dirs[1:]*times_tp:
                         self.load_standard_gastro(dataset_dir,select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
+
+        self.datasets_count.append(len(self.img_files))
                         
         with_others = True
         times_tp = 1        
@@ -2319,6 +2338,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
                     for dataset_dir in dataset_dirs*times_tp:
                         self.load_standard_gastro(dataset_dir,select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
 
+        self.datasets_count.append(len(self.img_files))
+
         with_others = True
         times_tp = 1        
         if True: #将湘雅2021-2022视频中挑选的两批远景图片数据集全部纳入训练过程
@@ -2336,11 +2357,15 @@ class LoadCOCOv2(LoadImagesAndLabels):
                 else:
                     for dataset_dir in dataset_dirs*times_tp:
                         self.load_standard_gastro(dataset_dir,select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
+
+        self.datasets_count.append(len(self.img_files))
         
         if True: #将xiangya_202209_202211纳入测试集合,这里的图片出自三段测试视频
             dataset_dirs = ['/home/ycao/DATASETS/gastro_cancer/xiangya_202209_202211','']
             if test_mode:
                 self.load_standard_gastro(dataset_dirs[0],select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
+
+        self.datasets_count.append(len(self.img_files))
 
         self.shapes = np.array(self.shapes, dtype=np.float64)
         #self.img_files = list(cache.keys())  # update
