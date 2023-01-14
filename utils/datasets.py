@@ -2214,8 +2214,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
         
         self.datasets_count.append(len(self.img_files))
         
-        #xl65versions = ['org','m111']
-        xl65v = 'm111'
+        #xl65versions = ['org','m111','m114']
+        xl65v = 'm114'
         if True: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練過程中
             append_fp_data_dir = "/data2/qilei_chen/wj_fp_images1"
 
@@ -2241,6 +2241,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
                     
                     if xl65v=='m111':
                         image_dir = image_dir.replace("/images/","/xl65_images_manual_111/")
+                    elif xl65v=="m114":
+                        image_dir = image_dir.replace("/images/","/xl65_images_manual_114/")
                     
                     if not os.path.exists(image_dir):
                         print(image_dir)
@@ -2302,7 +2304,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         with_others = True #训练过程中是否将负样本也纳入进去
         times_tp = 1
-        if True: #将gastro8-12的5批数据纳入，其中4批用于训练，1批用于测试
+        if False: #将gastro8-12的5批数据纳入，其中4批用于训练，1批用于测试
             dataset_dirs = ["/data3/qilei_chen/DATA/gastro8-12/协和21-11月~2022-5癌变已标注/协和2021-11月_2022-5癌变_20221121", #该批数据用于测试
                             "/data3/qilei_chen/DATA/gastro8-12/2021-2022年癌变已标注/20221111/2021_2022_癌变_20221111/",
                             "/data3/qilei_chen/DATA/gastro8-12/低级别_2021_2022已标注/2021_2022_低级别_20221110/",
