@@ -28,7 +28,7 @@ from utils.autoanchor import check_anchors
 from utils.datasets import create_dataloader
 from utils.general import labels_to_class_weights, increment_path, labels_to_image_weights, init_seeds, \
     fitness, strip_optimizer, get_latest_run, check_dataset, check_file, check_git_status, check_img_size, \
-    check_requirements, print_mutation, set_logging, one_cycle, colorstr ,fitness_f1, fitness_f2, fitness_f05
+    check_requirements, print_mutation, set_logging, one_cycle, colorstr ,fitness_f1, fitness_f2, fitness_f05, fitness_r
 from utils.google_utils import attempt_download
 from utils.loss import ComputeLoss, ComputeLossOTA
 from utils.plots import plot_images, plot_labels, plot_results, plot_evolution
@@ -54,6 +54,8 @@ def train(hyp, opt, device, tb_writer=None):
     best_f2 = wdir / 'best_f2.pt'
     
     best_f05 = wdir / 'best_f05.pt'
+    
+    best_r = wdir / "best_r.pt"
     
     results_file = save_dir / 'results.txt'
 
@@ -208,7 +210,7 @@ def train(hyp, opt, device, tb_writer=None):
 
     # Resume
     start_epoch, best_fitness = 0, 0.0
-    best_fitness1,best_fitness2,best_fitness05 = 0.0,0.0,0.0
+    best_fitness1,best_fitness2,best_fitness05, best_recall = 0.0,0.0,0.0,0.0
     if pretrained:
         # Optimizer
         if ckpt['optimizer'] is not None:
@@ -312,7 +314,7 @@ def train(hyp, opt, device, tb_writer=None):
                 f'Logging results to {save_dir}\n'
                 f'Starting training for {epochs} epochs...')
     torch.save(model, wdir / 'init.pt')
-    best_epoch_index,best_f1_epoch_index,best_f2_epoch_index,best_f05_epoch_index = 0,0,0,0
+    best_epoch_index,best_f1_epoch_index,best_f2_epoch_index,best_f05_epoch_index, best_r_epoch_index = 0,0,0,0,0
     for epoch in range(start_epoch, epochs):  # epoch ------------------------------------------------------------------
         model.train()
 
@@ -468,6 +470,10 @@ def train(hyp, opt, device, tb_writer=None):
             f05 = fitness_f05(np.array(results).reshape(1, -1))
             if f05 > best_fitness05:
                 best_fitness05 = f05     
+                
+            Rc = fitness_r(np.array(results).reshape(1, -1))
+            if Rc > best_recall:
+                best_recall = Rc
             
             wandb_logger.end_epoch(best_result=best_fitness == fi)
 
@@ -500,7 +506,11 @@ def train(hyp, opt, device, tb_writer=None):
                     best_f05_epoch_index = epoch
                     ckpt['best_fitness05'] = best_fitness05
                     torch.save(ckpt, best_f05)
-                
+
+                if best_recall == Rc:
+                    best_r_epoch_index = epoch
+                    ckpt['best_recall'] = best_recall
+                    torch.save(ckpt, best_r)                
                 
                 if best_fitness == fi:
                     best_epoch_index = epoch
@@ -518,8 +528,8 @@ def train(hyp, opt, device, tb_writer=None):
                         wandb_logger.log_model(
                             last.parent, opt, epoch, fi, best_model=best_fitness == fi)
                 del ckpt
-        print('best_epoch_index:{0},best_f1_epoch_index:{1},best_f2_epoch_index:{2},best_f05_epoch_index:{3}'
-              .format(best_epoch_index,best_f1_epoch_index,best_f2_epoch_index,best_f05_epoch_index))
+        print('best_epoch_index:{0},best_f1_epoch_index:{1},best_f2_epoch_index:{2},best_f05_epoch_index:{3},best_r_epoch_index:{4}'
+              .format(best_epoch_index,best_f1_epoch_index,best_f2_epoch_index,best_f05_epoch_index,best_r_epoch_index))
         # end epoch ----------------------------------------------------------------------------------------------------
     # end training
     if rank in [-1, 0]:

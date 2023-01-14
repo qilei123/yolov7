@@ -2301,8 +2301,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
         self.datasets_count.append(len(self.img_files)) #利用这个数据的存储实现每次epoch过程中随机挑选一部分m111的图片数据
 
         with_others = True #训练过程中是否将负样本也纳入进去
-        times_tp = 3
-        if False: #将gastro8-12的5批数据纳入，其中4批用于训练，1批用于测试
+        times_tp = 1
+        if True: #将gastro8-12的5批数据纳入，其中4批用于训练，1批用于测试
             dataset_dirs = ["/data3/qilei_chen/DATA/gastro8-12/协和21-11月~2022-5癌变已标注/协和2021-11月_2022-5癌变_20221121", #该批数据用于测试
                             "/data3/qilei_chen/DATA/gastro8-12/2021-2022年癌变已标注/20221111/2021_2022_癌变_20221111/",
                             "/data3/qilei_chen/DATA/gastro8-12/低级别_2021_2022已标注/2021_2022_低级别_20221110/",
