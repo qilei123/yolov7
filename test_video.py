@@ -52,7 +52,7 @@ def process_videos():
     
     model_name ='WJ_V1_with_mfp3-0-1-1'
     
-    model_pt_name = 'best_f05'
+    model_pt_name = 'best'
     
     model_dir = 'out/'+model_name+'/yolov7-wj_v1_with_fp/weights/'+model_pt_name+'.pt'
     
