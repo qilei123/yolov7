@@ -10,7 +10,7 @@ def periods_filter(periods,min_length = 2):
             
     return periods
     
-def get_positive_periods(filename = 'data_gc/videos_test/xiehe2111_2205_WJ_V1_with_mfp3-0_best/20211123_104815_03_r02_olbs290.mp4.txt'):
+def get_positive_periods(filename = 'data_gc/videos_test/xiehe2111_2205_WJ_V1_with_mfp3-0-6_best/20211123_104815_03_r02_olbs290.mp4.txt'):
     
     positive_peroids = []
     
@@ -78,7 +78,7 @@ def load_and_eval():
     
     gt_files = sorted(glob.glob(os.path.join(data_dir,"xiehe2111_2205/*.mp4.txt")))
     
-    pd_files = sorted(glob.glob(os.path.join(data_dir,'xiehe2111_2205_WJ_V1_with_mfp3-0-0_best/*.mp4.txt')))
+    pd_files = sorted(glob.glob(os.path.join(data_dir,'xiehe2111_2205_WJ_V1_with_mfp3-0-1-2_best/*.mp4.txt')))
     
     A_recalls = 0
     
