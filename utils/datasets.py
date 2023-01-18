@@ -2306,6 +2306,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         with_others = True #训练过程中是否将负样本也纳入进去
         times_tp = 1
+        only_test = True #只纳入该批数据的测试部分
         if True: #将gastro8-12的5批数据纳入，其中4批用于训练，1批用于测试
             '''
             folder_dir = '/data3/qilei_chen/DATA/gastro8-12'
@@ -2321,23 +2322,33 @@ class LoadCOCOv2(LoadImagesAndLabels):
                             folder_dir+"/低级别_2021_2022已标注/2021_2022_低级别_20221110/",
                             folder_dir+"/协和2022_第一批胃早癌视频裁图已标注/20221115/癌变2022_20221115",
                             folder_dir+"/协和2022_第二批胃早癌视频裁图已标注/协和_2022_癌变_2_20221117"]
-            if test_mode:
-                    self.load_standard_gastro(dataset_dirs[0],select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
-            else:
-                if with_others:
-                    for dataset_dir in dataset_dirs[1:]*times_tp:
-                        self.load_standard_gastro(dataset_dir)
+            if only_test:
+                if test_mode:
+                        self.load_standard_gastro(dataset_dirs[0],select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
+            else:                
+                if test_mode:
+                        self.load_standard_gastro(dataset_dirs[0],select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
                 else:
-                    for dataset_dir in dataset_dirs[1:]*times_tp:
-                        self.load_standard_gastro(dataset_dir,select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
+                    if with_others:
+                        for dataset_dir in dataset_dirs[1:]*times_tp:
+                            self.load_standard_gastro(dataset_dir)
+                    else:
+                        for dataset_dir in dataset_dirs[1:]*times_tp:
+                            self.load_standard_gastro(dataset_dir,select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
 
         self.datasets_count.append(len(self.img_files))
+        
+        far_vision = 'fars_118'
                         
         with_others = True
         times_tp = 1        
         if True: #将协和39段视频中挑选的两批远景图片数据集全部纳入训练过程
-            dataset_dirs = ['/home/ycao/DATASETS/gastro_cancer/xiehe_far_1',
-                            '/home/ycao/DATASETS/gastro_cancer/xiehe_far_2']
+            if far_vision =='fars_118':
+                dataset_dirs = ['/home/ycao/DATASETS/gastro_cancer/fars_118/xiehe_far_1',
+                                '/home/ycao/DATASETS/gastro_cancer/fars_118/xiehe_far_2']                
+            else:
+                dataset_dirs = ['/home/ycao/DATASETS/gastro_cancer/xiehe_far_1',
+                                '/home/ycao/DATASETS/gastro_cancer/xiehe_far_2']
             if with_others:
                 if test_mode:
                     pass
@@ -2356,8 +2367,12 @@ class LoadCOCOv2(LoadImagesAndLabels):
         with_others = True
         times_tp = 1        
         if True: #将湘雅2021-2022视频中挑选的两批远景图片数据集全部纳入训练过程
-            dataset_dirs = ['/home/ycao/DATASETS/gastro_cancer/xiangya_far_2021',
-                            '/home/ycao/DATASETS/gastro_cancer/xiangya_far_2022']
+            if far_vision == 'fars_118':
+                dataset_dirs = ['/home/ycao/DATASETS/gastro_cancer/fars_118/xiangya_far_2021',
+                                '/home/ycao/DATASETS/gastro_cancer/fars_118/xiangya_far_2022']
+            else:
+                dataset_dirs = ['/home/ycao/DATASETS/gastro_cancer/xiangya_far_2021',
+                                '/home/ycao/DATASETS/gastro_cancer/xiangya_far_2022']
             if with_others:
                 if test_mode:
                     pass
