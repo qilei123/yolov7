@@ -2214,8 +2214,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
         
         self.datasets_count.append(len(self.img_files))
         
-        #xl65versions = ['org','m111','m114']
-        xl65v = 'm111'
+        #xl65versions = ['org','m111','m114','m117']
+        xl65v = 'm117'
         if True: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練過程中
             append_fp_data_dir = "/data2/qilei_chen/wj_fp_images1"
 
@@ -2243,6 +2243,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
                         image_dir = image_dir.replace("/images/","/xl65_images_manual_111/")
                     elif xl65v=="m114":
                         image_dir = image_dir.replace("/images/","/xl65_images_manual_114/")
+                    elif xl65v=="m117":
+                        image_dir = image_dir.replace("/images/","/xl65_images_manual_117/")
                     
                     if not os.path.exists(image_dir):
                         print(image_dir)
@@ -2304,12 +2306,21 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         with_others = True #训练过程中是否将负样本也纳入进去
         times_tp = 1
-        if False: #将gastro8-12的5批数据纳入，其中4批用于训练，1批用于测试
-            dataset_dirs = ["/data3/qilei_chen/DATA/gastro8-12/协和21-11月~2022-5癌变已标注/协和2021-11月_2022-5癌变_20221121", #该批数据用于测试
-                            "/data3/qilei_chen/DATA/gastro8-12/2021-2022年癌变已标注/20221111/2021_2022_癌变_20221111/",
-                            "/data3/qilei_chen/DATA/gastro8-12/低级别_2021_2022已标注/2021_2022_低级别_20221110/",
-                            "/data3/qilei_chen/DATA/gastro8-12/协和2022_第一批胃早癌视频裁图已标注/20221115/癌变2022_20221115",
-                            "/data3/qilei_chen/DATA/gastro8-12/协和2022_第二批胃早癌视频裁图已标注/协和_2022_癌变_2_20221117"]
+        if True: #将gastro8-12的5批数据纳入，其中4批用于训练，1批用于测试
+            '''
+            folder_dir = '/data3/qilei_chen/DATA/gastro8-12'
+            dataset_dirs = [folder_dir+"/协和21-11月~2022-5癌变已标注/协和2021-11月_2022-5癌变_20221121", #该批数据用于测试
+                            folder_dir+"/2021-2022年癌变已标注/20221111/2021_2022_癌变_20221111/",
+                            folder_dir+"/低级别_2021_2022已标注/2021_2022_低级别_20221110/",
+                            folder_dir+"/协和2022_第一批胃早癌视频裁图已标注/20221115/癌变2022_20221115",
+                            folder_dir+"/协和2022_第二批胃早癌视频裁图已标注/协和_2022_癌变_2_20221117"]
+            '''
+            folder_dir = 'data_gc/gastro8-12_117'
+            dataset_dirs = [folder_dir+"/协和21-11月~2022-5癌变已标注/协和2021-11月_2022-5癌变_20221121", #该批数据用于测试
+                            folder_dir+"/2021-2022年癌变已标注/20221111/2021_2022_癌变_20221111/",
+                            folder_dir+"/低级别_2021_2022已标注/2021_2022_低级别_20221110/",
+                            folder_dir+"/协和2022_第一批胃早癌视频裁图已标注/20221115/癌变2022_20221115",
+                            folder_dir+"/协和2022_第二批胃早癌视频裁图已标注/协和_2022_癌变_2_20221117"]
             if test_mode:
                     self.load_standard_gastro(dataset_dirs[0],select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
             else:
@@ -2344,7 +2355,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         with_others = True
         times_tp = 1        
-        if False: #将湘雅2021-2022视频中挑选的两批远景图片数据集全部纳入训练过程
+        if True: #将湘雅2021-2022视频中挑选的两批远景图片数据集全部纳入训练过程
             dataset_dirs = ['/home/ycao/DATASETS/gastro_cancer/xiangya_far_2021',
                             '/home/ycao/DATASETS/gastro_cancer/xiangya_far_2022']
             if with_others:
@@ -2362,7 +2373,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         self.datasets_count.append(len(self.img_files))
         
-        if False: #将xiangya_202209_202211纳入测试集合,这里的图片出自三段测试视频
+        if True: #将xiangya_202209_202211纳入测试集合,这里的图片出自三段测试视频
             dataset_dirs = ['/home/ycao/DATASETS/gastro_cancer/xiangya_202209_202211','']
             if test_mode:
                 self.load_standard_gastro(dataset_dirs[0],select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
