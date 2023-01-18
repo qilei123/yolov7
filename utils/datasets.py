@@ -2335,7 +2335,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
                         
         with_others = True
         times_tp = 1        
-        if False: #将协和39段视频中挑选的两批远景图片数据集全部纳入训练过程
+        if True: #将协和39段视频中挑选的两批远景图片数据集全部纳入训练过程
             dataset_dirs = ['/home/ycao/DATASETS/gastro_cancer/xiehe_far_1',
                             '/home/ycao/DATASETS/gastro_cancer/xiehe_far_2']
             if with_others:
