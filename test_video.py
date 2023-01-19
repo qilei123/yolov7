@@ -6,6 +6,8 @@ import json
 
 import pycocotools.coco as COCO
 
+from evaluate_videos import get_positive_periods
+
 def CropImg(image,roi=None):
     if roi is None:
         height, width, d = image.shape
@@ -52,7 +54,7 @@ def process_videos():
     
     model_name ='WJ_V1_with_mfp3-0-1-3'
     
-    model_pt_name = 'best'
+    model_pt_name = 'best_f1'
     
     model_dir = 'out/'+model_name+'/yolov7-wj_v1_with_fp/weights/'+model_pt_name+'.pt'
     
@@ -129,6 +131,13 @@ def process_videos():
             ret, frame = video.read()
             frame_id+=1
 
+def is_in_periods(frame_id,positive_periods):
+    for period in positive_periods:
+        if frame_id>=period[0] and frame_id<=period[1]:
+            return True
+        
+    return False
+
 def process_videos_fp():
 
     gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=1)
@@ -159,6 +168,12 @@ def process_videos_fp():
     for video_dir in sorted(video_list):
         print(video_dir)
         video = cv2.VideoCapture(video_dir)
+        
+        positive_periods = get_positive_periods(video_dir+'.txt')
+        
+        os.makedirs(os.path.join(video_dir+"_fp","result_images"),exist_ok=True)
+        
+        os.makedirs(os.path.join(video_dir+"_fp","org_images"),exist_ok=True)
 
         #video_name = os.path.basename(video_dir)
 
@@ -177,18 +192,20 @@ def process_videos_fp():
             _, roi = CropImg(frame)
             
         ret, frame = video.read()
-        
+        '''
         size = (int(roi[2]-roi[0]),int(roi[3]-roi[1]))
-
+        
         video_writer = cv2.VideoWriter(os.path.join(report_images_dir,os.path.basename(video_dir)+'.avi'), 
                                         cv2.VideoWriter_fourcc('X', 'V', 'I', 'D'), fps, size)
 
         frame_id_report_log = open(os.path.join(report_images_dir,os.path.basename(video_dir)+'.txt'),'w')
-
+        '''
         frame_id = 0
         while ret:
-
+            
             frame = CropImg(frame,roi)
+            
+            org_frame = frame
 
             result = gastro_disease_detector.predict(frame, formate_result = False)
             
@@ -203,13 +220,17 @@ def process_videos_fp():
             
             cv2.putText(frame, str(frame_id), (0, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255, 255, 255), 2)
             frame,positive = gastro_disease_detector.show_result_on_image_positive(frame,result,visible_ids=[0])  
-            
+            '''
             if positive:
                 frame_id_report_log.write(str(frame_id)+' #1\n')
             else:
-                frame_id_report_log.write(str(frame_id)+' #0\n')            
+                frame_id_report_log.write(str(frame_id)+' #0\n')  
+            '''    
+            if positive and (not is_in_periods(frame_id,positive_periods)):
+                cv2.imwrite(os.path.join(video_dir+"_fp","result_images",str(frame_id).zfill(10)+".jpg"), frame)
+                cv2.imwrite(os.path.join(video_dir+"_fp","org_images",str(frame_id).zfill(10)+".jpg"),org_frame)          
 
-            video_writer.write(frame)
+            #video_writer.write(frame)
 
             ret, frame = video.read()
             frame_id+=1
@@ -647,7 +668,8 @@ def generate_test_video_labels():
         line = videos_periods.readline()
 
 if __name__ == '__main__':
-    process_videos()
+    #process_videos()
+    process_videos_fp()
     #extract_frames()
     #reprocess_images()
     #print(parse_periods())
