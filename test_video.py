@@ -205,7 +205,7 @@ def process_videos_fp():
             
             frame = CropImg(frame,roi)
             
-            org_frame = frame
+            org_frame = frame.copy()
 
             result = gastro_disease_detector.predict(frame, formate_result = False)
             
