@@ -50,7 +50,92 @@ def process_videos():
 
     #gastro_disease_detector.ini_model(model_dir="single_category.pt")
     
-    model_name ='WJ_V1_with_mfp3-0-6'
+    model_name ='WJ_V1_with_mfp3-0-1-3'
+    
+    model_pt_name = 'best'
+    
+    model_dir = 'out/'+model_name+'/yolov7-wj_v1_with_fp/weights/'+model_pt_name+'.pt'
+    
+    gastro_disease_detector.ini_model(model_dir=model_dir)
+
+    #videos_dir = '/data3/xiaolong_liang/data/videos_2022/202201_r06/gastroscopy/'
+    #videos_dir = '/data1/qilei_chen/DATA/gastro_cancer_tests/xiehe2111_2205'
+    videos_dir = '/home/ycao/DATASETS/gastro_cancer/videos_test/xiehe2111_2205'
+
+    #report_images_dir = '/data2/qilei_chen/wj_fp_images1'
+    report_images_dir = videos_dir+'_'+model_name+'_'+model_pt_name+'/'
+    
+    os.makedirs(report_images_dir,exist_ok=True)
+
+    video_list = glob.glob(os.path.join(videos_dir,"*.mp4"))
+    
+    roi = None
+
+    for video_dir in sorted(video_list):
+        print(video_dir)
+        video = cv2.VideoCapture(video_dir)
+
+        #video_name = os.path.basename(video_dir)
+
+        #images_folder = os.path.join(report_images_dir,video_name.replace('.mp4',''))
+
+        #os.makedirs(images_folder,exist_ok=True)
+
+        fps = video.get(cv2.CAP_PROP_FPS)
+        if roi==None:
+            video.set(cv2.CAP_PROP_POS_FRAMES,10000)
+
+            ret, frame = video.read()
+            
+            video.set(cv2.CAP_PROP_POS_FRAMES,0)
+
+            _, roi = CropImg(frame)
+            
+        ret, frame = video.read()
+        
+        size = (int(roi[2]-roi[0]),int(roi[3]-roi[1]))
+
+        video_writer = cv2.VideoWriter(os.path.join(report_images_dir,os.path.basename(video_dir)+'.avi'), 
+                                        cv2.VideoWriter_fourcc('X', 'V', 'I', 'D'), fps, size)
+
+        frame_id_report_log = open(os.path.join(report_images_dir,os.path.basename(video_dir)+'.txt'),'w')
+
+        frame_id = 0
+        while ret:
+
+            frame = CropImg(frame,roi)
+
+            result = gastro_disease_detector.predict(frame, formate_result = False)
+            
+            #report = False
+            #for i, det in enumerate(result):
+            #    if len(det):
+            #        report = True
+            #if report:
+            #    frame_id_report_log.write(str(frame_id)+' #1\n')
+            #else:
+            #    frame_id_report_log.write(str(frame_id)+' #0\n')    
+            
+            cv2.putText(frame, str(frame_id), (0, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255, 255, 255), 2)
+            frame,positive = gastro_disease_detector.show_result_on_image_positive(frame,result,visible_ids=[0])  
+            
+            if positive:
+                frame_id_report_log.write(str(frame_id)+' #1\n')
+            else:
+                frame_id_report_log.write(str(frame_id)+' #0\n')            
+
+            video_writer.write(frame)
+
+            ret, frame = video.read()
+            frame_id+=1
+
+def process_videos_fp():
+
+    gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=1)
+
+    #gastro_disease_detector.ini_model(model_dir="single_category.pt")
+    
+    model_name ='WJ_V1_with_mfp3-0-1-2'
     
     model_pt_name = 'best'
     
@@ -164,8 +249,6 @@ def extract_frames():
             read_and_save_frame(result_video,record_file,'result',frame_id)
 
             frame_id = record.readline()
-
-
 
 def reprocess_images():
     
