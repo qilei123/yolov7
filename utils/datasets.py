@@ -2215,7 +2215,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         self.datasets_count.append(len(self.img_files))
         
         #xl65versions = ['org','m111','m114','m117']
-        xl65v = 'm114'
+        xl65v = 'm117'
         if True: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練過程中
             append_fp_data_dir = "/data2/qilei_chen/wj_fp_images1"
 
@@ -2306,7 +2306,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         with_others = True #训练过程中是否将负样本也纳入进去
         times_tp = 1
-        only_test = True #只纳入该批数据的测试部分
+        only_test = False #只纳入该批数据的测试部分
         if True: #将gastro8-12的5批数据纳入，其中4批用于训练，1批用于测试
             '''
             folder_dir = '/data3/qilei_chen/DATA/gastro8-12'
