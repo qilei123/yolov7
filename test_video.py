@@ -46,13 +46,20 @@ def CropImg(image,roi=None):
     else:
         return image[roi[1]:roi[3],roi[0]:roi[2],:]
 
+def is_in_periods(frame_id,positive_periods):
+    for period in positive_periods:
+        if frame_id>=period[0] and frame_id<=period[1]:
+            return True
+        
+    return False
+
 def process_videos():
 
     gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=1)
 
     #gastro_disease_detector.ini_model(model_dir="single_category.pt")
     
-    model_name ='WJ_V1_with_mfp7-1'
+    model_name ='WJ_V1_with_mfp7-4'
     
     model_pt_name = 'best'
     
@@ -76,6 +83,7 @@ def process_videos():
     for video_dir in sorted(video_list):
         print(video_dir)
         video = cv2.VideoCapture(video_dir)
+        positive_periods = get_positive_periods(video_dir+'.txt')
 
         #video_name = os.path.basename(video_dir)
 
@@ -97,8 +105,11 @@ def process_videos():
         
         size = (int(roi[2]-roi[0]),int(roi[3]-roi[1]))
 
-        video_writer = cv2.VideoWriter(os.path.join(report_images_dir,os.path.basename(video_dir)+'.avi'), 
-                                        cv2.VideoWriter_fourcc('X', 'V', 'I', 'D'), fps, size)
+        #video_writer = cv2.VideoWriter(os.path.join(report_images_dir,os.path.basename(video_dir)+'.avi'), 
+        #                                cv2.VideoWriter_fourcc('X', 'V', 'I', 'D'), fps, size)
+        
+        #os.makedirs(os.path.join(report_images_dir,os.path.basename(video_dir)+'_fp','org_images'), exist_ok=True)
+        os.makedirs(os.path.join(report_images_dir,os.path.basename(video_dir)+'_fp','result_images'), exist_ok=True)
 
         frame_id_report_log = open(os.path.join(report_images_dir,os.path.basename(video_dir)+'.txt'),'w')
 
@@ -124,19 +135,17 @@ def process_videos():
             if positive:
                 frame_id_report_log.write(str(frame_id)+' #1\n')
             else:
-                frame_id_report_log.write(str(frame_id)+' #0\n')            
+                frame_id_report_log.write(str(frame_id)+' #0\n')   
+                
+            if positive and (not is_in_periods(frame_id,positive_periods)):
+                cv2.imwrite(os.path.join(report_images_dir,os.path.basename(video_dir)+'_fp','result_images',str(frame_id).zfill(10)+".jpg"), frame)             
 
-            video_writer.write(frame)
+            #video_writer.write(frame)
 
             ret, frame = video.read()
             frame_id+=1
 
-def is_in_periods(frame_id,positive_periods):
-    for period in positive_periods:
-        if frame_id>=period[0] and frame_id<=period[1]:
-            return True
-        
-    return False
+
 
 def process_videos_fp():
 
