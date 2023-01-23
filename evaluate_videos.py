@@ -78,7 +78,7 @@ def load_and_eval():
     
     gt_files = sorted(glob.glob(os.path.join(data_dir,"xiehe2111_2205/*.mp4.txt")))
     
-    pd_files = sorted(glob.glob(os.path.join(data_dir,'xiehe2111_2205_WJ_V1_with_mfp3-0-1-2_best/*.mp4.txt')))
+    pd_files = sorted(glob.glob(os.path.join(data_dir,'xiehe2111_2205_WJ_V1_with_mfp7-4_best/*.mp4.txt')))
     
     A_recalls = 0
     
