@@ -48,13 +48,13 @@ def CropImg(image,roi=None):
 
 def process_videos():
 
-    gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=0)
+    gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=1)
 
     #gastro_disease_detector.ini_model(model_dir="single_category.pt")
     
     model_name ='WJ_V1_with_mfp7-1'
     
-    model_pt_name = 'best_f1'
+    model_pt_name = 'best'
     
     model_dir = 'out/'+model_name+'/yolov7-wj_v1_with_fp/weights/'+model_pt_name+'.pt'
     
