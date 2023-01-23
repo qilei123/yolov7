@@ -2215,8 +2215,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
         self.datasets_count.append(len(self.img_files))
         
         #xl65versions = ['org','m111','m114','m117']
-        xl65v = 'm117'
-        if False: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練過程中
+        xl65v = 'm114'
+        if True: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練過程中
             append_fp_data_dir = "/data2/qilei_chen/wj_fp_images1"
 
             select_cats_id = [1,]
