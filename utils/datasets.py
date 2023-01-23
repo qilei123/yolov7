@@ -2139,7 +2139,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         self.datasets_count.append(len(self.img_files))
 
-        times_tp = 1
+        times_tp = 2
         if True: # add the 协和2015-2021年数据_append data
             append_tp_datas = ["/data2/qilei_chen/DATA/WJ_V1/v1_append_cancer",
                             "/data2/qilei_chen/DATA/WJ_V1/v1_append_high_level"]
@@ -2214,7 +2214,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         
         self.datasets_count.append(len(self.img_files))
         
-        #xl65versions = ['org','m111','m114','m117']
+        #xl65versions = ['org','m111','m114','m117','m123']
         xl65v = 'm114'
         if True: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練過程中
             append_fp_data_dir = "/data2/qilei_chen/wj_fp_images1"
@@ -2245,6 +2245,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
                         image_dir = image_dir.replace("/images/","/xl65_images_manual_114/")
                     elif xl65v=="m117":
                         image_dir = image_dir.replace("/images/","/xl65_images_manual_117/")
+                    elif xl65v=="m123":
+                        image_dir = image_dir.replace("/images/","/xl65_images_manual_123/")
                     
                     if not os.path.exists(image_dir):
                         print(image_dir)
@@ -2305,7 +2307,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         self.datasets_count.append(len(self.img_files)) #利用这个数据的存储实现每次epoch过程中随机挑选一部分m111的图片数据
 
         with_others = True #训练过程中是否将负样本也纳入进去
-        times_tp = 1
+        times_tp = 2
         only_test = False #只纳入该批数据的测试部分
         if True: #将gastro8-12的5批数据纳入，其中4批用于训练，1批用于测试
             '''
@@ -2340,8 +2342,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
         
         far_vision = 'fars_118'
                         
-        with_others = True
-        times_tp = 1        
+        with_others = False
+        times_tp = 2        
         if True: #将协和39段视频中挑选的两批远景图片数据集全部纳入训练过程
             if far_vision =='fars_118':
                 dataset_dirs = ['/home/ycao/DATASETS/gastro_cancer/fars_118/xiehe_far_1',
@@ -2364,8 +2366,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         self.datasets_count.append(len(self.img_files))
 
-        with_others = True
-        times_tp = 1        
+        with_others = False
+        times_tp = 2        
         if True: #将湘雅2021-2022视频中挑选的两批远景图片数据集全部纳入训练过程
             if far_vision == 'fars_118':
                 dataset_dirs = ['/home/ycao/DATASETS/gastro_cancer/fars_118/xiangya_far_2021',
@@ -2392,6 +2394,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
             dataset_dirs = ['/home/ycao/DATASETS/gastro_cancer/xiangya_202209_202211','']
             if test_mode:
                 self.load_standard_gastro(dataset_dirs[0],select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
+                
 
         self.datasets_count.append(len(self.img_files))
 
@@ -2403,7 +2406,11 @@ class LoadCOCOv2(LoadImagesAndLabels):
         nb = bi[-1] + 1  # number of batches
         self.batch = bi  # batch index of image
         self.n = n
-        self.indices = range(n)
+        if test_mode:
+            self.indices = range(n)
+        else:
+            self.indices = [*range(n)]
+            random.shuffle(self.indices)
         
         print('Images number:{}!'.format(n))
         print('Instances number:{}!'.format(self.instance_n))
