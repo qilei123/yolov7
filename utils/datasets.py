@@ -2216,7 +2216,9 @@ class LoadCOCOv2(LoadImagesAndLabels):
         
         #xl65versions = ['org','m111','m114','m117','m123']
         xl65v = 'm123'
-        if True: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練過程中
+        prob = 0.3
+        import random
+        if False: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練過程中
             append_fp_data_dir = "/data2/qilei_chen/wj_fp_images1"
 
             select_cats_id = [1,]
@@ -2248,7 +2250,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
                     elif xl65v=="m123":
                         image_dir = image_dir.replace("/images/","/xl65_images_manual_123/")
                     
-                    if not os.path.exists(image_dir):
+                    if (not os.path.exists(image_dir)) or prob>random.random():
                         print(image_dir)
                         continue
                     
