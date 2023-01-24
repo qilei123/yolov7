@@ -1835,7 +1835,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
             #labels, shapes, self.segments = zip(*cache.values())
             #self.labels = list(labels)
             
-        times_tp = 0
+        times_tp = 1
         if True:#协和2015-2021年数据+zz_allothers
             data_list= ['/home/ycao/DEVELOPMENTS/yolov7/data_gc/gastro_cancer_v66/annotations/_data2_zzhang_annotation_erosiveulcer_fine_trainfp0927.json',
                         '/home/ycao/DEVELOPMENTS/yolov7/data_gc/gastro_cancer_v66/annotations/_data2_zzhang_annotation_erosiveulcer_fine_test0928.json']
@@ -1855,7 +1855,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         
         self.datasets_count.append(len(self.img_files))
                 
-        times_tp = 1
+        times_tp = 2
         if True:#load tp dataset from 2021 and 2022 xiangya videos
             
             append_datas = ["/data2/qilei_chen/DATA/2021_2022gastro_cancers/2021_1",
@@ -2306,7 +2306,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         self.datasets_count.append(len(self.img_files)) #利用这个数据的存储实现每次epoch过程中随机挑选一部分m111的图片数据
 
-        with_others = True #训练过程中是否将负样本也纳入进去
+        with_others = False #训练过程中是否将负样本也纳入进去
         times_tp = 1
         only_test = False #只纳入该批数据的测试部分
         if True: #将gastro8-12的5批数据纳入，其中4批用于训练，1批用于测试
@@ -2320,10 +2320,10 @@ class LoadCOCOv2(LoadImagesAndLabels):
             '''
             folder_dir = 'data_gc/gastro8-12_117'
             dataset_dirs = [folder_dir+"/协和21-11月~2022-5癌变已标注/协和2021-11月_2022-5癌变_20221121", #该批数据用于测试
-                            #folder_dir+"/2021-2022年癌变已标注/20221111/2021_2022_癌变_20221111/",
+                            folder_dir+"/2021-2022年癌变已标注/20221111/2021_2022_癌变_20221111/",
                             folder_dir+"/低级别_2021_2022已标注/2021_2022_低级别_20221110/",
-                            #folder_dir+"/协和2022_第一批胃早癌视频裁图已标注/20221115/癌变2022_20221115",
-                            #folder_dir+"/协和2022_第二批胃早癌视频裁图已标注/协和_2022_癌变_2_20221117"
+                            folder_dir+"/协和2022_第一批胃早癌视频裁图已标注/20221115/癌变2022_20221115",
+                            folder_dir+"/协和2022_第二批胃早癌视频裁图已标注/协和_2022_癌变_2_20221117"
                             ]
             if only_test:
                 if test_mode:
