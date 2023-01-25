@@ -2215,7 +2215,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         self.datasets_count.append(len(self.img_files))
         
         #xl65versions = ['org','m111','m114','m117','m123']
-        xl65v = 'm123'
+        xl65v = 'org'
         prob = 0.3
         train_both = True
         import random
@@ -2316,7 +2316,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         self.datasets_count.append(len(self.img_files)) #利用这个数据的存储实现每次epoch过程中随机挑选一部分m111的图片数据
 
-        with_others = False #训练过程中是否将负样本也纳入进去
+        with_others = True #训练过程中是否将负样本也纳入进去
         times_tp = 1
         only_test = False #只纳入该批数据的测试部分
         if True: #将gastro8-12的5批数据纳入，其中4批用于训练，1批用于测试
@@ -2353,7 +2353,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         
         far_vision = 'fars_118'
                         
-        with_others = False
+        with_others = True
         times_tp = 1        
         if True: #将协和39段视频中挑选的两批远景图片数据集全部纳入训练过程
             if far_vision =='fars_118':
@@ -2377,7 +2377,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         self.datasets_count.append(len(self.img_files))
 
-        with_others = False
+        with_others = True
         times_tp = 1        
         if True: #将湘雅2021-2022视频中挑选的两批远景图片数据集全部纳入训练过程
             if far_vision == 'fars_118':
