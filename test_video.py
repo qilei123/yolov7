@@ -55,11 +55,11 @@ def is_in_periods(frame_id,positive_periods):
 
 def process_videos():
 
-    gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=3,conf = 0.3)
+    gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=1,conf = 0.3)
 
     #gastro_disease_detector.ini_model(model_dir="single_category.pt")
     
-    model_name ='WJ_V1_with_mfp7-20'
+    model_name ='WJ_V1_with_mfp7-21'
     
     model_pt_name = 'best'
     
@@ -72,7 +72,7 @@ def process_videos():
     videos_dir = '/home/ycao/DATASETS/gastro_cancer/videos_test/xiehe2111_2205'
 
     #report_images_dir = '/data2/qilei_chen/wj_fp_images1'
-    report_images_dir = videos_dir+'_'+model_name+'_'+model_pt_name+'/'
+    report_images_dir = videos_dir+'_'+model_name+'_'+model_pt_name+'_roi/'
     
     os.makedirs(report_images_dir,exist_ok=True)
 
@@ -92,8 +92,10 @@ def process_videos():
         #os.makedirs(images_folder,exist_ok=True)
 
         fps = video.get(cv2.CAP_PROP_FPS)
+        roi = None
         if roi==None:
-            video.set(cv2.CAP_PROP_POS_FRAMES,10000)
+            total_frames = video.get(cv2.CAP_PROP_FRAME_COUNT)
+            video.set(cv2.CAP_PROP_POS_FRAMES,int(total_frames/2))
 
             ret, frame = video.read()
             
