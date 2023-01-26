@@ -59,7 +59,7 @@ def process_videos():
 
     #gastro_disease_detector.ini_model(model_dir="single_category.pt")
     
-    model_name ='WJ_V1_with_mfp7-21'
+    model_name ='WJ_V1_with_mfp7-12'
     
     model_pt_name = 'best'
     
@@ -72,7 +72,7 @@ def process_videos():
     videos_dir = '/home/ycao/DATASETS/gastro_cancer/videos_test/xiehe2111_2205'
 
     #report_images_dir = '/data2/qilei_chen/wj_fp_images1'
-    report_images_dir = videos_dir+'_'+model_name+'_'+model_pt_name+'_roi/'
+    report_images_dir = videos_dir+'_'+model_name+'_'+model_pt_name+'_roifix/'
     
     os.makedirs(report_images_dir,exist_ok=True)
 
@@ -95,13 +95,16 @@ def process_videos():
         roi = None
         if roi==None:
             total_frames = video.get(cv2.CAP_PROP_FRAME_COUNT)
-            video.set(cv2.CAP_PROP_POS_FRAMES,int(total_frames/2))
+            video.set(cv2.CAP_PROP_POS_FRAMES,int(total_frames/3))
 
             ret, frame = video.read()
             
             video.set(cv2.CAP_PROP_POS_FRAMES,0)
 
-            _, roi = CropImg(frame)
+            roi_frame, roi = CropImg(frame)
+            
+            #cv2.imwrite(video_dir+".jpg", roi_frame)
+            #continue
             
         ret, frame = video.read()
         
