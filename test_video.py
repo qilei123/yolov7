@@ -55,11 +55,11 @@ def is_in_periods(frame_id,positive_periods):
 
 def process_videos():
 
-    gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=3,conf = 0.3)
+    gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=2,conf = 0.3)
 
     #gastro_disease_detector.ini_model(model_dir="single_category.pt")
     
-    model_name ='WJ_V1_with_mfp7-22'
+    model_name ='WJ_V1_with_mfp3-0-1-2'
     
     model_pt_name = 'best'
     
@@ -644,6 +644,131 @@ def generate_fp_coco1():
     with open(os.path.join(data_dir,"fp_instances_default_train1.json"), "w") as outfile:
         json.dump(temp_coco,outfile)
 
+def generate_fp_coco2():
+    gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=1)
+    #gastro_disease_detector.ini_model(model_dir="/data1/qilei_chen/DEVELOPMENTS/yolov7/out/WJ_V1_with_mfp1/yolov7-wj_v1_with_fp/weights/best.pt")
+    gastro_disease_detector.ini_model(model_dir="out/WJ_V1_with_mfp7-12/yolov7-wj_v1_with_fp/weights/best.pt")
+
+    #data_dir = '/data2/qilei_chen/DATA/2021_2022gastro_cancers/2021_videos'
+    data_dir = 'data_gc/videos_test/xiehe2111_2205_WJ_V1_with_mfp7-12_best_roifix/'
+    org_videos_dir = 'data_gc/videos_test/xiehe2111_2205/'
+
+    #folder_list = sorted(glob.glob(os.path.join(data_dir,'WJ_V1_with_mfp1_filted/*')))
+    #folder_list = sorted(glob.glob(os.path.join(data_dir,'images1_filted/*')))
+    folder_list = sorted(glob.glob(os.path.join(data_dir,'*.mp4_fp')))
+
+    #temp_coco = COCO('/data2/qilei_chen/DATA/2021_2022gastro_cancers/2022_1/annotations/crop_instances_default.json')
+    temp_coco = json.load(open('data_gc/gastro_cancer_v66/annotations/_data2_qilei_chen_wj_fp_images1_fp_instances_default_test.json'))
+
+    temp_coco['categories'] = [{'id':1,'name':'others','supercategory':''}]
+
+    images = []
+
+    annotations =[]
+
+    temp_image = temp_coco['images'][0].copy()
+
+    temp_annotation = temp_coco['annotations'][0].copy()
+
+    image_id = 1
+
+    annotation_id = 1
+    print(len(folder_list))
+    for folder_dir in folder_list:
+        print(folder_dir)
+
+        #video = cv2.VideoCapture(os.path.join(data_dir,os.path.basename(folder_dir)+".mp4"))
+        video = cv2.VideoCapture(os.path.join(org_videos_dir,os.path.basename(folder_dir).replace("_fp","")))#获取原视频路径，加载到视频流中
+        
+        roi = None
+        #获取正确的roi
+        if roi==None:
+            total_frames = video.get(cv2.CAP_PROP_FRAME_COUNT)
+            video.set(cv2.CAP_PROP_POS_FRAMES,int(total_frames/3))
+
+            ret, frame = video.read()
+            
+            video.set(cv2.CAP_PROP_POS_FRAMES,0)
+
+            roi_frame, roi = CropImg(frame)
+
+        #images_folder = os.path.join(folder_dir,'process')
+        images_folder = os.path.join(folder_dir,'fp_images')
+        
+        org_crop_images_folder = os.path.join(folder_dir,'org_images')
+        os.makedirs(org_crop_images_folder,exist_ok=True)
+
+        images_list = sorted(glob.glob(os.path.join(images_folder,'*.jpg')))
+
+        initial_frame_id = 0
+        
+        for image_dir in images_list:
+            
+            #image_dir = image_dir.replace('WJ_V1_with_mfp1_filted','WJ_V1_with_mfp1')
+            #image_dir = image_dir.replace('process','org')
+
+            frame_id = int(os.path.basename(image_dir).replace('.jpg',''))
+            
+            #if "20220507_121713_03_r02_olbs290_w.mp4" in folder_dir:
+            if False:
+                ret, image = video.read()
+                while ret:
+                    
+                    if  initial_frame_id==frame_id:
+                        break
+                    
+                    initial_frame_id += 1 
+                    ret, image = video.read()
+                
+            else:
+                video.set(cv2.CAP_PROP_POS_FRAMES,frame_id)
+            
+                ret, image = video.read()
+
+            image = CropImg(image,roi)
+            
+            #image = cv2.imread(image_dir)
+            cv2.imwrite(os.path.join(org_crop_images_folder,os.path.basename(image_dir)),image)
+
+            temp_image['file_name'] = os.path.join(org_crop_images_folder,os.path.basename(image_dir)).replace(data_dir,'')
+
+            temp_image['id'] = image_id
+
+            temp_image['height'],temp_image['width'],_ = image.shape
+
+            temp_image['roi'] = roi
+
+            result = gastro_disease_detector.predict(image, formate_result = False)
+
+            temp_annotation_id = annotation_id
+
+            report = True
+
+            for i, det in enumerate(result):
+                # Write results
+                for *xyxy, conf, cls in reversed(det):
+                    temp_annotation['id'] = annotation_id
+                    temp_annotation['bbox'] = [int(xyxy[0]),int(xyxy[1]),int(xyxy[2]-xyxy[0]),int(xyxy[3]-xyxy[1])]
+                    temp_annotation['category_id'] = 1
+                    temp_annotation['image_id'] = image_id
+                    temp_annotation['segmentation'] = [[]]
+                    temp_annotation['area'] = temp_annotation['bbox'][2]* temp_annotation['bbox'][3]
+                    annotations.append(temp_annotation.copy())
+                    if int(cls)==0:
+                        report = False
+                    annotation_id+=1
+                    
+            if temp_annotation_id == annotation_id or report:
+                print(image_dir)
+            images.append(temp_image.copy())
+            image_id+=1
+
+    temp_coco['images'] = images
+    temp_coco['annotations'] = annotations
+
+    with open(os.path.join(data_dir,"fp_instances_coco.json"), "w") as outfile:
+        json.dump(temp_coco,outfile)
+
 def generate_test_video_labels():
     
     videos_periods = open('data_gc/videos_test/video_labels.txt')
@@ -692,5 +817,5 @@ if __name__ == '__main__':
     #generate_fp_coco1()
     
     #generate_test_video_labels()
-    
+    #generate_fp_coco2()
     pass
