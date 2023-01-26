@@ -45,7 +45,8 @@ class GastroDiseaseDetect():
         Load model through model dir or file IO
         '''
         self.model = torch.load(model_dir, map_location=self.device)  # load
-        print(self.model['real_epoch'])
+        if 'real_epoch' in self.model:
+            print(self.model['real_epoch'])
         self.model = self.model['ema' if self.model.get('ema') else 'model'].float().fuse().eval()
         if self.half:
             self.model.half()
