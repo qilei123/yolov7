@@ -2214,8 +2214,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
         
         self.datasets_count.append(len(self.img_files))
         
-        #xl65versions = ['org','m111','m114','m117','m123']
-        xl65v = 'm123'
+        #xl65versions = ['org','m111:774','m114:156','m117:405','m123:157']
+        xl65v = 'm117'
         prob = 0.3
         train_both = True
         import random
