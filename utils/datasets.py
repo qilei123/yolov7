@@ -2408,6 +2408,13 @@ class LoadCOCOv2(LoadImagesAndLabels):
                 
 
         self.datasets_count.append(len(self.img_files))
+        
+        
+        if False: #将10段测试视频中挑选出来的fp纳入训练过程
+            append_fp_data_dir = "data_gc/videos_test/xiehe2111_2205_WJ_V1_with_mfp7-12_best_roifix"
+            
+            if not test_mode:
+                self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:1})            
 
         self.shapes = np.array(self.shapes, dtype=np.float64)
         #self.img_files = list(cache.keys())  # update
