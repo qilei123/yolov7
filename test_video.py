@@ -56,14 +56,14 @@ def is_in_periods(frame_id,positive_periods):
 def process_videos():
 
     visualize = False
-    gpu_id = 1
+    gpu_id = 0
     conf = 0.3
     
     gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=gpu_id,conf = conf)
 
     #gastro_disease_detector.ini_model(model_dir="single_category.pt")
     
-    model_name ='WJ_V1_with_mfp7-22-1'
+    model_name ='WJ_V1_with_mfp7-25'
     
     model_pt_name = 'best'
     
