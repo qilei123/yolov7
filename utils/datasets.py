@@ -2215,7 +2215,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         self.datasets_count.append(len(self.img_files))
         
         #xl65versions = ['org','m111:774','m114:156','m117:405','m123:157']
-        xl65v = 'm123'
+        xl65v = 'm111'
         prob = 0.3
         train_both = True
         import random
@@ -2415,6 +2415,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
             
             if not test_mode:
                 self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:1})            
+
+        self.datasets_count.append(len(self.img_files))
 
         self.shapes = np.array(self.shapes, dtype=np.float64)
         #self.img_files = list(cache.keys())  # update
