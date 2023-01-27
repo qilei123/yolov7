@@ -55,11 +55,15 @@ def is_in_periods(frame_id,positive_periods):
 
 def process_videos():
 
-    gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=2,conf = 0.3)
+    visualize = False
+    gpu_id = 1
+    conf = 0.3
+    
+    gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=gpu_id,conf = conf)
 
     #gastro_disease_detector.ini_model(model_dir="single_category.pt")
     
-    model_name ='WJ_V1_with_mfp3-0-1-2'
+    model_name ='WJ_V1_with_mfp7-22-1'
     
     model_pt_name = 'best'
     
@@ -109,8 +113,8 @@ def process_videos():
         ret, frame = video.read()
         
         size = (int(roi[2]-roi[0]),int(roi[3]-roi[1]))
-
-        video_writer = cv2.VideoWriter(os.path.join(report_images_dir,os.path.basename(video_dir)+'.avi'), 
+        if visualize:
+            video_writer = cv2.VideoWriter(os.path.join(report_images_dir,os.path.basename(video_dir)+'.avi'), 
                                         cv2.VideoWriter_fourcc('X', 'V', 'I', 'D'), fps, size)
         
         #os.makedirs(os.path.join(report_images_dir,os.path.basename(video_dir)+'_fp','org_images'), exist_ok=True)
@@ -142,10 +146,11 @@ def process_videos():
             else:
                 frame_id_report_log.write(str(frame_id)+' #0\n')   
                 
-            if positive and (not is_in_periods(frame_id,positive_periods)):
-                cv2.imwrite(os.path.join(report_images_dir,os.path.basename(video_dir)+'_fp','result_images',str(frame_id).zfill(10)+".jpg"), frame)             
-
-            video_writer.write(frame)
+            if positive and (not is_in_periods(frame_id,positive_periods)) and visualize:
+                cv2.imwrite(os.path.join(report_images_dir,os.path.basename(video_dir)+'_fp','result_images',str(frame_id).zfill(10)+".jpg"), frame)     
+                        
+            if visualize:
+                video_writer.write(frame)
 
             ret, frame = video.read()
             frame_id+=1
