@@ -2215,7 +2215,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         self.datasets_count.append(len(self.img_files))
         
         #xl65versions = ['org','m111:774','m114:156','m117:405','m123:157']
-        xl65v = 'm111'
+        xl65v = 'm117'
         prob = 0.3
         train_both = True
         import random
@@ -2410,7 +2410,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         self.datasets_count.append(len(self.img_files))
         
         
-        if False: #将10段测试视频中挑选出来的fp纳入训练过程
+        if True: #将10段测试视频中挑选出来的fp纳入训练过程
             append_fp_data_dir = "data_gc/videos_test/xiehe2111_2205_WJ_V1_with_mfp7-12_best_roifix"
             
             if not test_mode:
