@@ -16,15 +16,15 @@ python setup.py install
 ```
 3.模型参数存放位置（nas服务器）：
 
-v1: /data_us/qilei/胃部病变检测模型，其中single_category.pt用于癌检测，multi_categories.pt用于多病种（溃疡，糜烂，癌等）检测；
+v1: /data_us/qilei/胃部高风险病变检测模型，其中single_category.pt用于癌检测，multi_categories.pt用于多病种（溃疡，糜烂，癌等）检测；
 
-v2: /data_us/qilei/胃部病变检测模型/binary_categories_y7-3-0.pt；该模型输出结果为二分类，0代表癌变（高风险区域），1代表其他类别区域；默认置信度为0.3，可在0.3附近进行置信度调整；
+v2: /data_us/qilei/胃部高风险病变检测模型/binary_categories_y7-3-0.pt；该模型输出结果为二分类，0代表癌变（高风险区域），1代表其他类别区域；默认置信度为0.3，可在0.3附近进行置信度调整；
 
 ***Latest update!***
 
-v3.1:/data_us/qilei/胃部病变检测模型/binary_categories_y7-12-0.pt；
+v3.1:/data_us/qilei/胃部高风险病变检测模型/binary_categories_y7-12-0.pt；
 
-v3.2:/data_us/qilei/胃部病变检测模型/binary_categories_y7-22-2.pt；
+v3.2:/data_us/qilei/胃部高风险病变检测模型/binary_categories_y7-22-2.pt；
 
 模型输出结果为二分类，0代表癌变（高风险区域），1代表其他类别区域；默认置信度为0.3，可在0.3附近进行置信度调整；
 
