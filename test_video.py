@@ -55,7 +55,7 @@ def is_in_periods(frame_id,positive_periods):
 
 def process_videos():
 
-    visualize = False
+    visualize = True
     gpu_id = 0
     conf = 0.3
     
@@ -64,7 +64,7 @@ def process_videos():
     #gastro_disease_detector.ini_model(model_dir="single_category.pt")
     
     #model_name ='WJ_V1_with_mfp7-22-2_ppsa'
-    model_name = 'WJ_V1_with_mfp7x-22-2'
+    model_name = 'WJ_V1_with_mfp7-22-2_retrain'
     print(model_name)
     
     model_pt_name = 'best'
@@ -78,7 +78,10 @@ def process_videos():
     videos_dir = '/home/ycao/DATASETS/gastro_cancer/videos_test/xiehe2111_2205'
 
     #report_images_dir = '/data2/qilei_chen/wj_fp_images1'
-    report_images_dir = videos_dir+'_'+model_name+'_'+model_pt_name+'_roifix/'
+    report_images_dir = videos_dir+'_'+model_name+'_'+model_pt_name+'_roifix'
+    if visualize:
+        report_images_dir += '_vis'
+        
     
     os.makedirs(report_images_dir,exist_ok=True)
 
