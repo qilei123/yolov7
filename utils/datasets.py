@@ -2219,7 +2219,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         prob = 0.3
         train_both = False
         import random
-        if True: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練過程中
+        if False: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練過程中
             append_fp_data_dir = "/data2/qilei_chen/wj_fp_images1"
 
             select_cats_id = [1,]
