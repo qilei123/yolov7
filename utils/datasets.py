@@ -2431,6 +2431,11 @@ class LoadCOCOv2(LoadImagesAndLabels):
         else:
             self.indices = [*range(n)]
             random.shuffle(self.indices)
+            
+        debug_4_short = False
+        if debug_4_short and not test_mode:
+            self.indices = self.indices[:100]
+            self.n = len(self.indices)
         
         print('Images number:{}!'.format(n))
         print('Instances number:{}!'.format(self.instance_n))

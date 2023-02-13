@@ -623,8 +623,10 @@ class Model(nn.Module):
                     m(x.copy() if c else x)
                 dt.append((time_synchronized() - t) * 100)
                 print('%10.1f%10.0f%10.1fms %-40s' % (o, m.np, dt[-1], m.type))
-
-            x = m(x)  # run
+            try:
+                x = m(x)  # run
+            except Exception as e:
+                print('%10.0f %-40s' % ( m.np, m.type))
             
             y.append(x if m.i in self.save else None)  # save output
 
