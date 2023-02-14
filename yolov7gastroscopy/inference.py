@@ -55,7 +55,7 @@ class GastroDiseaseDetect():
         
         self.img_size = check_img_size(self.img_size, s=self.stride)  # check img_size
 
-    def predict(self, image:np.ndarray, dyn_conf:float = 0.3, 
+    def predict(self, image:np.ndarray, dyn_conf:float = -0.3, 
                     dyn_nms_iou:float = 0.5, formate_result:bool = True): #image is a single cv2 image
         '''
         图像AI分析
@@ -81,7 +81,8 @@ class GastroDiseaseDetect():
             class_id: id number for each category
             type: 对于多别识别模型, 0:erosive 1:ulcer 2:others 3:hemorrhage, 4:cancer,对于单类别识别模型, 0:cancer
         '''
-        self.conf = dyn_conf
+        if dyn_conf>0:
+            self.conf = dyn_conf
         assert self.conf>=0 and self.conf<1, "conf should be in the range [0,1)"
 
         self.nms_iou = dyn_nms_iou

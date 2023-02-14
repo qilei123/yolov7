@@ -57,7 +57,7 @@ def process_videos():
 
     visualize = True
     gpu_id = 2
-    conf = 0.3
+    conf = 0.2
     
     gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=gpu_id,conf = conf)
 
