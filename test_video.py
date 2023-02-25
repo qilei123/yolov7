@@ -783,6 +783,11 @@ def generate_fp_coco2():
     with open(os.path.join(data_dir,"fp_instances_coco.json"), "w") as outfile:
         json.dump(temp_coco,outfile)
 
+def generate_fp_coco3():
+    gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=1)
+    #gastro_disease_detector.ini_model(model_dir="/data1/qilei_chen/DEVELOPMENTS/yolov7/out/WJ_V1_with_mfp1/yolov7-wj_v1_with_fp/weights/best.pt")
+    gastro_disease_detector.ini_model(model_dir="out/WJ_V1_with_mfp7-12/yolov7-wj_v1_with_fp/weights/best.pt")
+
 def generate_test_video_labels():
     
     videos_periods = open('data_gc/videos_test/video_labels.txt')
@@ -821,7 +826,7 @@ def generate_test_video_labels():
         line = videos_periods.readline()
 
 if __name__ == '__main__':
-    process_videos()
+    #process_videos()
     #process_videos_fp()
     #extract_frames()
     #reprocess_images()
@@ -832,4 +837,5 @@ if __name__ == '__main__':
     
     #generate_test_video_labels()
     #generate_fp_coco2()
+    generate_fp_coco3()
     pass
