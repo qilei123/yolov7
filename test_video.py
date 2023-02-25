@@ -57,13 +57,13 @@ def process_videos():
 
     visualize = True
     gpu_id = 2
-    conf = 0.2
+    conf = 0.3
     
     gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=gpu_id,conf = conf)
 
     #gastro_disease_detector.ini_model(model_dir="single_category.pt")
     
-    model_name ='WJ_V1_with_mfp7-22-2'
+    model_name ='WJ_V1_with_mfp7-22-2_retrain'
     #model_name = 'WJ_V1_with_mfp7x-22-2_ppsa_v2'
     print(model_name)
     
@@ -75,7 +75,8 @@ def process_videos():
 
     #videos_dir = '/data3/xiaolong_liang/data/videos_2022/202201_r06/gastroscopy/'
     #videos_dir = '/data1/qilei_chen/DATA/gastro_cancer_tests/xiehe2111_2205'
-    videos_dir = '/home/ycao/DATASETS/gastro_cancer/videos_test/xiehe2111_2205'
+    #videos_dir = '/home/ycao/DATASETS/gastro_cancer/videos_test/xiehe2111_2205'
+    videos_dir = '/home/ycao/DATASETS/gastro_cancer/videos_test/fujis'
 
     #report_images_dir = '/data2/qilei_chen/wj_fp_images1'
     report_images_dir = videos_dir+'_'+model_name+'_'+model_pt_name+'_roifix_'+str(conf)
@@ -92,7 +93,7 @@ def process_videos():
     for video_dir in sorted(video_list):
         print(video_dir)
         video = cv2.VideoCapture(video_dir)
-        positive_periods = get_positive_periods(video_dir+'.txt')
+        #positive_periods = get_positive_periods(video_dir+'.txt')
 
         #video_name = os.path.basename(video_dir)
 
@@ -104,15 +105,18 @@ def process_videos():
         roi = None
         if roi==None:
             total_frames = video.get(cv2.CAP_PROP_FRAME_COUNT)
-            video.set(cv2.CAP_PROP_POS_FRAMES,int(total_frames/3))
+            video.set(cv2.CAP_PROP_POS_FRAMES,int(total_frames/10))
 
             ret, frame = video.read()
             
             video.set(cv2.CAP_PROP_POS_FRAMES,0)
+            
+            frame = CropImg(frame,[10,10,1340,1070])
 
             roi_frame, roi = CropImg(frame)
             
-            #cv2.imwrite(video_dir+".jpg", roi_frame)
+            #cv2.imwrite("test.jpg", roi_frame)
+            #exit(0)
             #continue
             
         ret, frame = video.read()
@@ -151,8 +155,8 @@ def process_videos():
             else:
                 frame_id_report_log.write(str(frame_id)+' #0\n')   
                 
-            if positive and (not is_in_periods(frame_id,positive_periods)) and visualize:
-                cv2.imwrite(os.path.join(report_images_dir,os.path.basename(video_dir)+'_fp','result_images',str(frame_id).zfill(10)+".jpg"), frame)     
+            #if positive and (not is_in_periods(frame_id,positive_periods)) and visualize:
+            #    cv2.imwrite(os.path.join(report_images_dir,os.path.basename(video_dir)+'_fp','result_images',str(frame_id).zfill(10)+".jpg"), frame)     
                         
             if visualize:
                 video_writer.write(frame)
