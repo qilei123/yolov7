@@ -783,10 +783,110 @@ def generate_fp_coco2():
     with open(os.path.join(data_dir,"fp_instances_coco.json"), "w") as outfile:
         json.dump(temp_coco,outfile)
 
+class AnnotationConstructor:
+    def __init__(self, temp_ann_dir,categories=None,catid_maps=None):
+        #temp_coco = json.load(open('data_gc/gastro_cancer_v66/annotations/_data2_qilei_chen_wj_fp_images1_fp_instances_default_test.json'))
+        self.temp_coco = json.load(open(temp_ann_dir))
+        
+        self.temp_coco['categories'] = [{'id':1,'name':'others','supercategory':''}]
+        
+        self.catid_maps = {0:1,1:1}
+
+        self.images = []
+
+        self.annotations =[]
+
+        self.temp_image = self.temp_coco['images'][0].copy()
+
+        self.temp_annotation = self.temp_coco['annotations'][0].copy()
+
+        self.image_id = 0
+
+        self.annotation_id = 0
+        
+    def append_image(self,img_dir,img_shape,roi = None):
+        self.image_id += 1
+        
+        self.temp_image['file_name'] = img_dir
+
+        self.temp_image['id'] = self.image_id
+
+        self.temp_image['height'],self.temp_image['width'],_ = img_shape
+
+        self.temp_image['roi'] = roi
+        
+        self.images.append(self.temp_image.copy()) 
+    
+    def append_annotations(self,result):
+        
+        for i, det in enumerate(result):
+            # Write results
+            for *xyxy, conf, cls in reversed(det):
+                self.temp_annotation['id'] = self.annotation_id
+                self.temp_annotation['bbox'] = [int(xyxy[0]),int(xyxy[1]),int(xyxy[2]-xyxy[0]),int(xyxy[3]-xyxy[1])]
+                self.temp_annotation['category_id'] = self.catid_maps[int(cls)]
+                self.temp_annotation['image_id'] = self.image_id
+                self.temp_annotation['segmentation'] = [[]]
+                self.temp_annotation['area'] = self.temp_annotation['bbox'][2]* self.temp_annotation['bbox'][3]
+                self.annotations.append(self.temp_annotation.copy())
+                self.annotation_id+=1        
+        
+    def save_annotation(self,save_dir):
+        self.temp_coco['images'] = self.images
+        self.temp_coco['annotations'] = self.annotations
+        os.makedirs(os.path.dirname(save_dir), exist_ok=True)
+        with open(os.path.join(save_dir), "w",encoding='utf-8') as outfile:
+            json.dump(self.temp_coco,outfile,ensure_ascii=False)
+            
+            
 def generate_fp_coco3():
     gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=1)
-    #gastro_disease_detector.ini_model(model_dir="/data1/qilei_chen/DEVELOPMENTS/yolov7/out/WJ_V1_with_mfp1/yolov7-wj_v1_with_fp/weights/best.pt")
-    gastro_disease_detector.ini_model(model_dir="out/WJ_V1_with_mfp7-12/yolov7-wj_v1_with_fp/weights/best.pt")
+    gastro_disease_detector.ini_model(model_dir="out/WJ_V1_with_mfp7-22-2_retrain/yolov7-wj_v1_with_fp/weights/best.pt")
+    
+    #roi = None
+    roi = [665, 0, 1917, 1079]# 胃部高风险病变误报图片参数
+    
+    dataset_dir = "data_gc/胃部高风险病变误报图片"
+    
+    image_folder_list = glob.glob(dataset_dir+"/*")
+    
+    anno_constructor = AnnotationConstructor('data_gc/gastro_cancer_v66/annotations/_data2_qilei_chen_wj_fp_images1_fp_instances_default_test.json')
+    
+    for image_folder in image_folder_list:
+        if not os.path.isdir(image_folder) or image_folder.endswith(("processed","images","annotations")):
+            continue
+        else:
+            print(image_folder)
+    
+        image_dst_folder = image_folder+"_processed"
+        os.makedirs(image_dst_folder, exist_ok=True)
+        
+        image_crop_folder = image_folder.replace(dataset_dir, os.path.join(dataset_dir,"images"))
+        os.makedirs(image_crop_folder,exist_ok=True)
+        
+        image_dir_list = glob.glob(os.path.join(image_folder,"*.jpg"))
+        
+        for image_dir in image_dir_list:
+            image = cv2.imread(image_dir)
+            if roi==None:
+                image,roi = CropImg(image)
+            else:
+                image = CropImg(image,roi)
+                
+            crop_img_dir = os.path.join(image_crop_folder,os.path.basename(image_dir))
+            if not os.path.exists(crop_img_dir):
+                cv2.imwrite(crop_img_dir, image)
+            
+            result = gastro_disease_detector.predict(image, formate_result = False)
+            image,positive = gastro_disease_detector.show_result_on_image_positive(image,result,visible_ids=[0]) 
+            if positive:
+
+                anno_constructor.append_image(crop_img_dir.replace(os.path.join(dataset_dir,"images/"),""),image.shape,roi)
+                anno_constructor.append_annotations(result)
+                
+                cv2.imwrite(os.path.join(image_dst_folder,os.path.basename(image_dir)),image)
+                
+    anno_constructor.save_annotation(os.path.join(dataset_dir,"annotations","instances_default.json"))
 
 def generate_test_video_labels():
     
