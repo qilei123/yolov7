@@ -2417,6 +2417,14 @@ class LoadCOCOv2(LoadImagesAndLabels):
                 self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:1})            
 
         self.datasets_count.append(len(self.img_files))
+        
+        if True: #将带有十二指肠乳头的fp数据集纳入训练过程
+            append_fp_data_dir = "data_gc/胃部高风险病变误报图片"
+            
+            if not test_mode:
+                self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:1})            
+
+        self.datasets_count.append(len(self.img_files))
 
         self.shapes = np.array(self.shapes, dtype=np.float64)
         #self.img_files = list(cache.keys())  # update
