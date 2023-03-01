@@ -78,8 +78,9 @@ def load_and_eval():
     
     gt_files = sorted(glob.glob(os.path.join(data_dir,"xiehe2111_2205/*.mp4.txt")))
     
-    exp_name = 'WJ_V1_with_mfp7x-22-2_ppsa_best_roifix'
+    #exp_name = 'WJ_V1_with_mfp7x-22-2_ppsa_best_roifix'
     #exp_name = 'WJ_V1_with_mfp7x-22-2_best_roifix'
+    exp_name = 'WJ_V1_with_mfp7-22-2_v4-0_best_roifix_0.3_vis'
     
     print(exp_name)
     

@@ -55,7 +55,7 @@ def is_in_periods(frame_id,positive_periods):
 
 def process_videos():
 
-    visualize = False
+    visualize = True
     gpu_id = 2
     conf = 0.3
     
@@ -105,13 +105,13 @@ def process_videos():
         roi = None
         if roi==None:
             total_frames = video.get(cv2.CAP_PROP_FRAME_COUNT)
-            video.set(cv2.CAP_PROP_POS_FRAMES,int(total_frames/10))
+            video.set(cv2.CAP_PROP_POS_FRAMES,int(total_frames/3))
 
             ret, frame = video.read()
             
             video.set(cv2.CAP_PROP_POS_FRAMES,0)
             
-            frame = CropImg(frame,[10,10,1340,1070])
+            #frame = CropImg(frame,[10,10,1340,1070])
 
             roi_frame, roi = CropImg(frame)
             
@@ -301,7 +301,6 @@ def extract_frames():
 
 def reprocess_images():
     
-
     gastro_disease_detector = GastroDiseaseDetect(half =False,gpu_id=1)
 
     gastro_disease_detector.ini_model(model_dir="/data1/qilei_chen/DEVELOPMENTS/yolov7/out/WJ_V1_with_mfp1/yolov7-wj_v1_with_fp/weights/best.pt")
