@@ -926,7 +926,7 @@ def generate_test_video_labels():
         line = videos_periods.readline()
 
 if __name__ == '__main__':
-    #process_videos()
+    process_videos()
     #process_videos_fp()
     #extract_frames()
     #reprocess_images()
@@ -937,5 +937,5 @@ if __name__ == '__main__':
     
     #generate_test_video_labels()
     #generate_fp_coco2()
-    generate_fp_coco3()
+    #generate_fp_coco3()
     pass
