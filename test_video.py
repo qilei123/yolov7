@@ -923,9 +923,69 @@ def generate_test_video_labels():
                 video_label.write(line_str)        
         
         line = videos_periods.readline()
+def generate_eval_on_videos():
+    videos_dir = '/home/ycao/DATASETS/gastro_cancer/videos_test/xiehe2111_2205'
+    video_list = glob.glob(os.path.join(videos_dir,"*.mp4"))
+    frame_labels_list = glob.glob(os.path.join(videos_dir,"*.txt"))
+    
+    for video_dir,frame_labels in zip(sorted(video_list),sorted(frame_labels_list)):
+        video = cv2.VideoCapture(video_dir)
+        print(video_dir)
+        #positive_periods = get_positive_periods(video_dir+'.txt')
 
+        #video_name = os.path.basename(video_dir)
+
+        tp_images_folder = os.path.join(video_dir.replace('.mp4',''),'tp')
+        tn_images_folder = os.path.join(video_dir.replace('.mp4',''),'tn')
+        os.makedirs(tp_images_folder,exist_ok=True)
+        os.makedirs(tn_images_folder,exist_ok=True)
+
+        fps = video.get(cv2.CAP_PROP_FPS)
+        roi = None
+        if roi==None:
+            total_frames = video.get(cv2.CAP_PROP_FRAME_COUNT)
+            video.set(cv2.CAP_PROP_POS_FRAMES,int(total_frames/3))
+
+            ret, frame = video.read()
+            
+            video.set(cv2.CAP_PROP_POS_FRAMES,0)
+            
+            #frame = CropImg(frame,[10,10,1340,1070])
+
+            roi_frame, roi = CropImg(frame)
+            
+        frame_labels_file = open(frame_labels)
+        
+        frame_label  = frame_labels_file.readline()
+        
+        tp_step = 10
+        tn_step = 20
+        
+        while frame_label:
+            
+            frame_eles = frame_label.split(" ")
+            
+            frame_id = int(frame_eles[0])
+            
+            label = int(frame_eles[1].replace("\n","").replace("#",""))
+            
+            if label==0 and frame_id%tn_step==0:
+                video.set(cv2.CAP_PROP_POS_FRAMES,frame_id)
+                ret, frame = video.read()
+                if ret:
+                    frame = CropImg(frame,roi)   
+                    cv2.imwrite(os.path.join(tn_images_folder,str(frame_id).zfill(10)+".jpg"),frame)
+                
+            if label==1 and frame_id%tp_step==0:
+                video.set(cv2.CAP_PROP_POS_FRAMES,frame_id)
+                ret, frame = video.read()
+                if ret:
+                    frame = CropImg(frame,roi)   
+                    cv2.imwrite(os.path.join(tp_images_folder,str(frame_id).zfill(10)+".jpg"),frame)
+            frame_label = frame_labels_file.readline()
+    
 if __name__ == '__main__':
-    process_videos()
+    #process_videos()
     #process_videos_fp()
     #extract_frames()
     #reprocess_images()
@@ -937,4 +997,5 @@ if __name__ == '__main__':
     #generate_test_video_labels()
     #generate_fp_coco2()
     #generate_fp_coco3()
+    generate_eval_on_videos()
     pass
