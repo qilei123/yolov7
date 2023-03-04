@@ -787,9 +787,15 @@ class AnnotationConstructor:
         #temp_coco = json.load(open('data_gc/gastro_cancer_v66/annotations/_data2_qilei_chen_wj_fp_images1_fp_instances_default_test.json'))
         self.temp_coco = json.load(open(temp_ann_dir))
         
-        self.temp_coco['categories'] = [{'id':1,'name':'others','supercategory':''}]
+        if categories == None:
+            self.temp_coco['categories'] = [{'id':1,'name':'others','supercategory':''}]
+        else:
+            self.temp_coco["categories"] = categories
         
-        self.catid_maps = {0:1,1:1}
+        if catid_maps == None:
+            self.catid_maps = {0:1,1:1}
+        else:
+            self.catid_maps = catid_maps
 
         self.images = []
 
@@ -928,6 +934,10 @@ def generate_eval_on_videos():
     video_list = glob.glob(os.path.join(videos_dir,"*.mp4"))
     frame_labels_list = glob.glob(os.path.join(videos_dir,"*.txt"))
     
+    anno_constructor = AnnotationConstructor('data_gc/gastro_cancer_v66/annotations/_data2_qilei_chen_wj_fp_images1_fp_instances_default_test.json', 
+                                            categories= [{'id':1,'name':'others','supercategory':''}],
+                                            catid_maps={0:0,1:1})
+    
     for video_dir,frame_labels in zip(sorted(video_list),sorted(frame_labels_list)):
         video = cv2.VideoCapture(video_dir)
         print(video_dir)
@@ -974,18 +984,18 @@ def generate_eval_on_videos():
                 ret, frame = video.read()
                 if ret:
                     frame = CropImg(frame,roi)   
-                    cv2.imwrite(os.path.join(tn_images_folder,str(frame_id).zfill(10)+".jpg"),frame)
+                    #cv2.imwrite(os.path.join(tn_images_folder,str(frame_id).zfill(10)+".jpg"),frame)
                 
             if label==1 and frame_id%tp_step==0:
                 video.set(cv2.CAP_PROP_POS_FRAMES,frame_id)
                 ret, frame = video.read()
                 if ret:
                     frame = CropImg(frame,roi)   
-                    cv2.imwrite(os.path.join(tp_images_folder,str(frame_id).zfill(10)+".jpg"),frame)
+                    #cv2.imwrite(os.path.join(tp_images_folder,str(frame_id).zfill(10)+".jpg"),frame)
             frame_label = frame_labels_file.readline()
     
 if __name__ == '__main__':
-    process_videos()
+    #process_videos()
     #process_videos_fp()
     #extract_frames()
     #reprocess_images()
@@ -997,5 +1007,5 @@ if __name__ == '__main__':
     #generate_test_video_labels()
     #generate_fp_coco2()
     #generate_fp_coco3()
-    #generate_eval_on_videos()
+    generate_eval_on_videos()
     pass
