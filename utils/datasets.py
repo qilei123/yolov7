@@ -2598,6 +2598,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
              #print('So such image in:'+img_dir+' or '+ os.path.join(self.path27,'images',img_dir.replace("/","_")))
              return img_dir
 
+class LoadEvaVideos(LoadImagesAndLabels):
+    pass
 # Ancillary functions --------------------------------------------------------------------------------------------------
 def load_image(self, index):
     # loads 1 image from dataset, returns img, original hw, resized hw
