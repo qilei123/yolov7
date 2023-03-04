@@ -989,13 +989,13 @@ def generate_eval_on_videos():
             
             label = int(frame_eles[1].replace("\n","").replace("#",""))
             
-            if label==0 and frame_id%tn_step==0 and False:
+            if label==0 and frame_id%tn_step==0:
                 video.set(cv2.CAP_PROP_POS_FRAMES,frame_id)
                 ret, frame = video.read()
                 if ret:
                     frame = CropImg(frame,roi)   
                     img_dir = os.path.join(tn_images_folder,str(frame_id).zfill(10)+".jpg")
-                    cv2.imwrite(img_dir,frame)
+                    #cv2.imwrite(img_dir,frame)
                     anno_constructor.append_image(img_dir.replace(videos_dir+"/",""),frame.shape)
                     anno_constructor.append_annotations1(frame.shape,2)
                 
@@ -1005,7 +1005,7 @@ def generate_eval_on_videos():
                 if ret:
                     frame = CropImg(frame,roi)   
                     img_dir = os.path.join(tn_images_folder,str(frame_id).zfill(10)+".jpg")
-                    cv2.imwrite(img_dir,frame)
+                    #cv2.imwrite(img_dir,frame)
                     anno_constructor.append_image(img_dir.replace(videos_dir+"/",""),frame.shape)
                     anno_constructor.append_annotations1(frame.shape,1)
             frame_label = frame_labels_file.readline()
