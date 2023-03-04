@@ -834,8 +834,17 @@ class AnnotationConstructor:
                 self.temp_annotation['segmentation'] = [[]]
                 self.temp_annotation['area'] = self.temp_annotation['bbox'][2]* self.temp_annotation['bbox'][3]
                 self.annotations.append(self.temp_annotation.copy())
-                self.annotation_id+=1        
-        
+                self.annotation_id+=1    
+                    
+    def append_annotations1(self,img_shape,cat_id):
+        self.temp_annotation['id'] = self.annotation_id
+        self.temp_annotation['bbox'] = [1,1,int(img_shape[1]-1),int(img_shape[0]-1)]
+        self.temp_annotation['category_id'] = self.catid_maps[int(cat_id)]
+        self.temp_annotation['image_id'] = self.image_id
+        self.temp_annotation['segmentation'] = [[]]
+        self.temp_annotation['area'] = self.temp_annotation['bbox'][2]* self.temp_annotation['bbox'][3]
+        self.annotations.append(self.temp_annotation.copy())
+        self.annotation_id+=1           
     def save_annotation(self,save_dir):
         self.temp_coco['images'] = self.images
         self.temp_coco['annotations'] = self.annotations
@@ -930,13 +939,14 @@ def generate_test_video_labels():
         
         line = videos_periods.readline()
 def generate_eval_on_videos():
+    dataset_dir = '/home/ycao/DATASETS/gastro_cancer/videos_test'
     videos_dir = '/home/ycao/DATASETS/gastro_cancer/videos_test/xiehe2111_2205'
     video_list = glob.glob(os.path.join(videos_dir,"*.mp4"))
     frame_labels_list = glob.glob(os.path.join(videos_dir,"*.txt"))
     
     anno_constructor = AnnotationConstructor('data_gc/gastro_cancer_v66/annotations/_data2_qilei_chen_wj_fp_images1_fp_instances_default_test.json', 
-                                            categories= [{'id':1,'name':'others','supercategory':''}],
-                                            catid_maps={0:0,1:1})
+                                            categories= [{'id':1,'name':'cancers','supercategory':''},{'id':2,'name':'others','supercategory':''}],
+                                            catid_maps={1:1,2:2})
     
     for video_dir,frame_labels in zip(sorted(video_list),sorted(frame_labels_list)):
         video = cv2.VideoCapture(video_dir)
@@ -968,7 +978,7 @@ def generate_eval_on_videos():
         
         frame_label  = frame_labels_file.readline()
         
-        tp_step = 10
+        tp_step = 5
         tn_step = 20
         
         while frame_label:
@@ -979,20 +989,28 @@ def generate_eval_on_videos():
             
             label = int(frame_eles[1].replace("\n","").replace("#",""))
             
-            if label==0 and frame_id%tn_step==0:
+            if label==0 and frame_id%tn_step==0 and False:
                 video.set(cv2.CAP_PROP_POS_FRAMES,frame_id)
                 ret, frame = video.read()
                 if ret:
                     frame = CropImg(frame,roi)   
-                    #cv2.imwrite(os.path.join(tn_images_folder,str(frame_id).zfill(10)+".jpg"),frame)
+                    img_dir = os.path.join(tn_images_folder,str(frame_id).zfill(10)+".jpg")
+                    cv2.imwrite(img_dir,frame)
+                    anno_constructor.append_image(img_dir.replace(videos_dir+"/",""),frame.shape)
+                    anno_constructor.append_annotations1(frame.shape,2)
                 
             if label==1 and frame_id%tp_step==0:
                 video.set(cv2.CAP_PROP_POS_FRAMES,frame_id)
                 ret, frame = video.read()
                 if ret:
                     frame = CropImg(frame,roi)   
-                    #cv2.imwrite(os.path.join(tp_images_folder,str(frame_id).zfill(10)+".jpg"),frame)
+                    img_dir = os.path.join(tn_images_folder,str(frame_id).zfill(10)+".jpg")
+                    cv2.imwrite(img_dir,frame)
+                    anno_constructor.append_image(img_dir.replace(videos_dir+"/",""),frame.shape)
+                    anno_constructor.append_annotations1(frame.shape,1)
             frame_label = frame_labels_file.readline()
+            
+    anno_constructor.save_annotation(os.path.join(dataset_dir,"annotations","crop_instances_default.json"))
     
 if __name__ == '__main__':
     #process_videos()
