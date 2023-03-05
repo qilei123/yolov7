@@ -1013,7 +1013,7 @@ def generate_eval_on_videos():
     anno_constructor.save_annotation(os.path.join(dataset_dir,"annotations","crop_instances_default.json"))
     
 if __name__ == '__main__':
-    #process_videos()
+    process_videos()
     #process_videos_fp()
     #extract_frames()
     #reprocess_images()
@@ -1025,5 +1025,5 @@ if __name__ == '__main__':
     #generate_test_video_labels()
     #generate_fp_coco2()
     #generate_fp_coco3()
-    generate_eval_on_videos()
+    #generate_eval_on_videos()
     pass
