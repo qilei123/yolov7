@@ -360,6 +360,16 @@ def condition(boxA,boxB,iou_thred):
     #if iou>iou_thred:
         return True
     return False
+
+def condition_center(boxA,boxB,iou_thred):
+    iou = bb_intersection_over_union(boxA,boxB)
+    center_in  = box_center_in(boxA,boxB)
+    #if iou>iou_thred or center_in:
+    #if iou>iou_thred and center_in:
+    if center_in:
+    #if iou>iou_thred:
+        return True
+    return False
  
 def evaluation2():
     task = 'val'

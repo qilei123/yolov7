@@ -90,6 +90,17 @@ def create_dataloader(path, imgsz, batch_size, stride, opt, hyp=None, augment=Fa
                                     pad=pad,
                                     image_weights=image_weights,
                                     prefix=prefix)
+        elif path.endswith("video"):
+                dataset = LoadEvaVideos(path, imgsz, batch_size,
+                                    augment=augment,  # augment images
+                                    hyp=hyp,  # augmentation hyperparameters
+                                    rect=rect,  # rectangular training
+                                    cache_images=cache,
+                                    single_cls=opt.single_cls,
+                                    stride=int(stride),
+                                    pad=pad,
+                                    image_weights=image_weights,
+                                    prefix=prefix)            
         else:
             dataset = LoadImagesAndLabels(path, imgsz, batch_size,
                                         augment=augment,  # augment images
@@ -2599,7 +2610,185 @@ class LoadCOCOv2(LoadImagesAndLabels):
              return img_dir
 
 class LoadEvaVideos(LoadImagesAndLabels):
-    pass
+    def __init__(self, path, img_size=640, batch_size=16, augment=False, hyp=None, rect=False, image_weights=False,
+                 cache_images=False, single_cls=False, stride=32, pad=0.0, prefix=''):
+        self.img_size = img_size
+        self.augment = augment
+        self.hyp = hyp
+        self.image_weights = image_weights
+        self.rect = False if image_weights else rect
+        #print(path)
+        #print(self.image_weights)
+        #print(self.rect)
+        self.mosaic = self.augment and not self.rect  # load 4 images at a time into a mosaic (only during training)
+        self.mosaic_border = [-img_size // 2, -img_size // 2]
+        self.stride = stride
+        self.path = path
+        
+        self.albumentations = Albumentations() if augment else None
+
+        # dictory example:
+        # annotations: path = data_root/annotations/train.json; here path is the dir for annotation file
+        # images: data_root/images/*
+        #self.path27 = '/home/ycao/DEVELOPMENTS/yolov7/data_gc/gastro_cancer_v66'
+        
+        self.datasets_count = []#按顺序记录每个数据集的个数
+        
+        path = os.path.basename(path).replace("_", "/")
+        
+        data_root = "/home/ycao/DEVELOPMENTS/yolov7/data_gc/videos_test"
+        images_root = os.path.join(data_root , "xiehe2111_2205")
+        self.img_files =  []
+        self.labels = [] #(img,cat,x,y,w,h)
+        self.shapes = []
+        self.segments = []
+
+        self.cat_id_map = {}
+
+        self.instance_n = 0
+
+        test_mode = True
+
+
+        if True: # add the eval video frames
+
+            select_cats_id = [1,2]
+            self.cat_id_map = {1:0,2:1}
+
+            coco = COCO(os.path.join(data_root,'annotations','crop_instances_default.json'))
+            for ImgId in coco.getImgIds():
+
+                img = coco.loadImgs([ImgId])[0]
+                image_dir = os.path.join(images_root,img['file_name'])
+                if not os.path.exists(image_dir):
+                    print(image_dir)
+                    continue
+
+                img_width,img_height = img['width'],img['height']
+
+                annIds =  coco.getAnnIds(ImgId)
+                anns = coco.loadAnns(annIds)
+
+                boxes = []
+                segs = []
+                for ann in anns:
+                    if ann['category_id'] in select_cats_id:
+                        
+                        box = [self.cat_id_map[ann['category_id']],
+                                (ann['bbox'][0]+ann['bbox'][2]/2)/img_width,
+                                (ann['bbox'][1]+ann['bbox'][3]/2)/img_height,
+                                ann['bbox'][2]/img_width,
+                                ann['bbox'][3]/img_height]
+                        '''
+                        box = []
+                        box.append(cat_id_map[ann['category_id']])
+                        '''
+                        seg = []
+
+                        if 'segmentation' in ann and len(ann['segmentation']):
+                            for coord_index,coord in enumerate(ann['segmentation'][0]):
+                                if coord_index%2==1:
+
+                                    seg.append(ann['segmentation'][0][coord_index-1]/img_width)
+                                    seg.append(coord/img_height)
+                        
+                        boxes.append(box)
+                        segs.append(np.array(seg, dtype=np.float32).reshape(-1, 2))
+
+                if len(boxes)>0:
+                    self.instance_n+=len(boxes)
+                    self.labels.append(np.array(boxes, dtype=np.float64))
+                    self.shapes.append((img_width,img_height))
+                    self.segments.append(segs)
+                    self.img_files.append(image_dir)
+        
+        self.datasets_count.append(len(self.img_files))
+
+        self.shapes = np.array(self.shapes, dtype=np.float64)
+        #self.img_files = list(cache.keys())  # update
+        #self.label_files = img2label_paths(cache.keys())  # update
+        n = len(self.img_files)  # number of images
+        bi = np.floor(np.arange(n) / batch_size).astype(np.int)  # batch index
+        nb = bi[-1] + 1  # number of batches
+        self.batch = bi  # batch index of image
+        self.n = n
+        if test_mode:
+            self.indices = range(n)
+        else:
+            self.indices = [*range(n)]
+            random.shuffle(self.indices)
+            
+        debug_4_short = False
+        if debug_4_short and not test_mode:
+            self.indices = self.indices[:100]
+            self.n = len(self.indices)
+        
+        print('Images number:{}!'.format(n))
+        print('Instances number:{}!'.format(self.instance_n))
+
+        # Update labels
+        include_class = []  # filter labels to include only these classes (optional)
+        include_class_array = np.array(include_class).reshape(1, -1)
+        for i, (label, segment) in enumerate(zip(self.labels, self.segments)):
+            if include_class:
+                j = (label[:, 0:1] == include_class_array).any(1)
+                self.labels[i] = label[j]
+                if segment:
+                    self.segments[i] = segment[j]
+            if single_cls:  # single-class training, merge all classes into 0
+                self.labels[i][:, 0] = 0
+                #if segment:
+                #    self.segments[i][:, 0] = 0
+            #assert len(label)==len(segment),"they should be equal"
+
+        #self.rect = True
+        # Rectangular Training
+        if self.rect:
+            # Sort by aspect ratio
+            s = self.shapes  # wh
+            ar = s[:, 1] / s[:, 0]  # aspect ratio
+            irect = ar.argsort()
+            self.img_files = [self.img_files[i] for i in irect]
+            #self.label_files = [self.label_files[i] for i in irect]
+            self.labels = [self.labels[i] for i in irect]
+            self.segments = [self.segments[i] for i in irect]
+            self.shapes = s[irect]  # wh
+            ar = ar[irect]
+
+            # Set training image shapes
+            shapes = [[1, 1]] * nb
+            for i in range(nb):
+                ari = ar[bi == i]
+                mini, maxi = ari.min(), ari.max()
+                if maxi < 1:
+                    shapes[i] = [maxi, 1]
+                elif mini > 1:
+                    shapes[i] = [1, 1 / mini]
+
+            self.batch_shapes = np.ceil(np.array(shapes) * img_size / stride + pad).astype(np.int) * stride
+
+        # Cache images into RAM/disk for faster training (WARNING: large datasets may exceed system resources)
+        self.imgs, self.img_npy = [None] * n, [None] * n
+        if cache_images:
+            if cache_images == 'disk':
+                self.im_cache_dir = Path(Path(self.img_files[0]).parent.as_posix() + '_npy')
+                self.img_npy = [self.im_cache_dir / Path(f).with_suffix('.npy').name for f in self.img_files]
+                self.im_cache_dir.mkdir(parents=True, exist_ok=True)
+            gb = 0  # Gigabytes of cached images
+            self.img_hw0, self.img_hw = [None] * n, [None] * n
+            results = ThreadPool(8).imap(self.load_image, range(n))
+            pbar = tqdm(enumerate(results), total=n)
+            for i, x in pbar:
+                if cache_images == 'disk':
+                    if not self.img_npy[i].exists():
+                        np.save(self.img_npy[i].as_posix(), x[0])
+                    gb += self.img_npy[i].stat().st_size
+                else:  # 'ram'
+                    self.imgs[i], self.img_hw0[i], self.img_hw[i] = x  # im, hw_orig, hw_resized = load_image(self, i)
+                    gb += self.imgs[i].nbytes
+                pbar.desc = f'{prefix}Caching images ({gb / 1E9:.1f}GB {cache_images})'
+            pbar.close()
+            
 # Ancillary functions --------------------------------------------------------------------------------------------------
 def load_image(self, index):
     # loads 1 image from dataset, returns img, original hw, resized hw
