@@ -30,7 +30,7 @@ def get_db2(db_set = 'train'):
     return append_fp_data_dir,os.path.join(append_fp_data_dir,fp_ann_file)
 
 
-data_path,labels_path = get_db1(3)
+data_path,labels_path = get_db1(4)
 #data_path,labels_path = get_db2()
 
 

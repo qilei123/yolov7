@@ -1504,6 +1504,20 @@ class LoadCOCO(LoadImagesAndLabels):
                     self.shapes.append((img_width,img_height))
                     self.segments.append(segs)
                     self.img_files.append(image_dir)
+    def backup_images(self,backup_dir):
+        import os
+        os.makedirs(backup_dir,exist_ok=True)
+        count = 0
+        for img_dir in self.img_files:
+            file_name = os.path.basename(img_dir)
+            if os.path.exists(os.path.join(backup_dir,file_name)):
+                print(file_name)
+                count+=1
+            else:
+                command_str = 'cp '+img_dir+' '+os.path.join(backup_dir,file_name)
+                os.system(command_str)
+        
+        print(count)
 class LoadROI(LoadImagesAndLabels):
     def __init__(self, path, img_size=640, batch_size=16, augment=False, hyp=None, rect=False, image_weights=False,
                  cache_images=False, single_cls=False, stride=32, pad=0.0, prefix=''):
@@ -2302,3 +2316,8 @@ def load_segmentations(self, index):
     #print(key)
     # /work/handsomejw66/coco17/
     return self.segs[key]
+
+if __name__ == "__main__":
+    train_loader = LoadCOCO('')
+    test_loader = LoadCOCO("")
+    
