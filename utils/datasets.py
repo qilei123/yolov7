@@ -2458,6 +2458,21 @@ class LoadCOCOv2(LoadImagesAndLabels):
         
         print('Images number:{}!'.format(n))
         print('Instances number:{}!'.format(self.instance_n))
+        
+        self.images_cache_on = False
+        
+        self.cache_vision = 3
+        
+        self.test_mode = test_mode
+        
+        self.cache_folder = 'data_gc'
+        self.images_cache_on = False
+        
+        self.imgs = []
+        self.img_hw0 = []
+        self.img_hw = []
+        
+        self.images_cache()
 
         # Update labels
         include_class = []  # filter labels to include only these classes (optional)
@@ -2609,6 +2624,38 @@ class LoadCOCOv2(LoadImagesAndLabels):
              #print('So such image in:'+img_dir+' or '+ os.path.join(self.path27,'images',img_dir.replace("/","_")))
              return img_dir
 
+    def images_cache(self):
+        if self.images_cache_on:
+            pass
+        else:
+            if self.test_mode:
+                cache_file_name = "test_"+str(self.cache_vision)+".cache"
+            else:
+                cache_file_name = "train_"+str(self.cache_vision)+".cache"
+                
+            self.cache_file_dir = os.path.join(self.cache_folder,cache_file_name)
+
+            if os.path.isfile(self.cache_file_dir):
+                fptr = open(self.cache_file_dir, "rb")
+                cache_datas = pickle.load(fptr)
+                fptr.close() 
+                self.imgs=cache_datas['imgs']
+                self.img_hw0 =cache_datas['img_hw0']
+                self.img_hw = cache_datas['img_hw']              
+            else:
+                for index in range(self.n):
+                    image,img_size,img_resize = load_image(self,index) 
+                    self.imgs.append(image)
+                    self.img_hw0.append(img_size)
+                    self.img_hw.append(img_resize)
+                    
+                cache_datas = {"imgs":self.imgs,"img_hw0":self.img_hw0,"img_hw":self.img_hw}
+                fptr = open(self.cache_file_dir, "wb")  # open file in write binary mode
+                pickle.dump(cache_datas, fptr)  # dump list data into file 
+                fptr.close()  
+                
+            self.images_cache_on = True            
+    
 class LoadEvaVideos(LoadImagesAndLabels):
     def __init__(self, path, img_size=640, batch_size=16, augment=False, hyp=None, rect=False, image_weights=False,
                  cache_images=False, single_cls=False, stride=32, pad=0.0, prefix=''):
@@ -2792,7 +2839,9 @@ class LoadEvaVideos(LoadImagesAndLabels):
 # Ancillary functions --------------------------------------------------------------------------------------------------
 def load_image(self, index):
     # loads 1 image from dataset, returns img, original hw, resized hw
-    img = self.imgs[index]
+    img = None
+    if index<len(self.imgs):
+        img = self.imgs[index]
     if img is None:  # not cached
         path = self.img_files[index]
         img = cv2.imread(path)  # BGR
