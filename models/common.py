@@ -115,7 +115,9 @@ class ParallelPolarizedSelfAttention(nn.Module):
     def __init__(self, in_channel=512,out_channel=512,k =1,s=1):
         super().__init__()
         
-        self.channel_conv = nn.Conv2d(in_channel,out_channel,kernel_size=(1,1))
+        self.channel_conv = nn.Conv2d(in_channel,out_channel,
+                                    kernel_size=(k,k),stride=s,
+                                    padding= autopad(k), groups=1,bias=False)
         channel = out_channel
         self.ch_wv=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
         self.ch_wq=nn.Conv2d(channel,1,kernel_size=(1,1))

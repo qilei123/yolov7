@@ -8,7 +8,6 @@ import numpy as np
 import torch
 import yaml
 from tqdm import tqdm
-import cv2
 
 from models.experimental import attempt_load
 from utils.datasets import create_dataloader
@@ -17,7 +16,7 @@ from utils.general import coco80_to_coco91_class, check_dataset, check_file, che
 from utils.metrics import ap_per_class, ConfusionMatrix
 from utils.plots import plot_images, output_to_target, plot_study_txt
 from utils.torch_utils import select_device, time_synchronized, TracedModel
-
+from evaluation import condition
 
 def test(data,
          weights=None,
@@ -40,7 +39,9 @@ def test(data,
          compute_loss=None,
          half_precision=True,
          trace=False,
-         is_coco=False):
+         is_coco=False,
+         v5_metric=False,
+         c_criteria = True):
     # Initialize/load model and set device
     training = model is not None
     if training:  # called by train.py
@@ -60,7 +61,7 @@ def test(data,
         imgsz = check_img_size(imgsz, s=gs)  # check img_size
         
         if trace:
-            model = TracedModel(model, device, opt.img_size)
+            model = TracedModel(model, device, imgsz)
 
     # Half
     half = device.type != 'cpu' and half_precision  # half precision only supported on CUDA
@@ -90,6 +91,9 @@ def test(data,
         dataloader = create_dataloader(data[task], imgsz, batch_size, gs, opt, pad=0.5, rect=True,
                                        prefix=colorstr(f'{task}: '))[0]
 
+    if v5_metric:
+        print("Testing with YOLOv5 AP metric...")
+    
     seen = 0
     confusion_matrix = ConfusionMatrix(nc=nc)
     names = {k: v for k, v in enumerate(model.names if hasattr(model, 'names') else model.module.names)}
@@ -98,6 +102,22 @@ def test(data,
     p, r, f1, mp, mr, map50, map, t0, t1 = 0., 0., 0., 0., 0., 0., 0., 0., 0.
     loss = torch.zeros(3, device=device)
     jdict, stats, ap, ap_class, wandb_images = [], [], [], [], []
+    
+    #这部分变量用来计算特殊recall和precision的计算值
+    gts = 0
+    pos_gts = 0
+    c_r = 0.0
+    
+    predicts = 0
+    pos_predicts = 0    
+    c_p = 0.0
+    
+    selected_cat_ids = [0]
+    pos_iou_thres = 0.2
+    
+    min_value = 0.000001
+    
+    
     for batch_i, (img, targets, paths, shapes) in enumerate(tqdm(dataloader, desc=s)):
         img = img.to(device, non_blocking=True)
         img = img.half() if half else img.float()  # uint8 to fp16/32
@@ -118,9 +138,40 @@ def test(data,
             # Run NMS
             targets[:, 2:] *= torch.Tensor([width, height, width, height]).to(device)  # to pixels
             lb = [targets[targets[:, 0] == i, 1:] for i in range(nb)] if save_hybrid else []  # for autolabelling
+            
+            out_c = out.clone()
+            
             t = time_synchronized()
             out = non_max_suppression(out, conf_thres=conf_thres, iou_thres=iou_thres, labels=lb, multi_label=True)
             t1 += time_synchronized() - t
+            
+            out_c = non_max_suppression(out_c, conf_thres=0.25, iou_thres=iou_thres, labels=lb, multi_label=True)
+        #这里采用宽松策略进行结果统计
+        for si,predn in enumerate(out_c):
+            pred = predn.clone()
+            labels = targets[targets[:, 0] == si, 1:]
+            
+            scale_coords(img[si].shape[1:], pred[:, :4], shapes[si][0], shapes[si][1])  # native-space pred
+            box = pred[:, :4]#xyxy2xywh(pred[:, :4])  # xywh
+            #box[:, :2] -= box[:, 2:] / 2  # xy center to top-left corner
+            
+            # target boxes
+            tbox = xywh2xyxy(labels[:, 1:5])
+            scale_coords(img[si].shape[1:], tbox, shapes[si][0], shapes[si][1])  # native-space labels
+            
+            for tl,tb in zip(labels.tolist(),tbox.tolist()):
+                gts+=1
+                for pp, pb in zip(pred.tolist(), box.tolist()):
+                    if tl[0] == pp[5] and (tl[0] in selected_cat_ids) and condition(tb,pb,pos_iou_thres):
+                        pos_gts+=1
+                        break
+                
+            for pp, pb in zip(pred.tolist(), box.tolist()):
+                predicts+=1
+                for tl,tb in zip(labels.tolist(),tbox.tolist()):
+                    if pp[5] == tl[0] and (pp[5] in selected_cat_ids) and condition(pb,tb,pos_iou_thres):
+                        pos_predicts+=1
+                        break
 
         # Statistics per image
         for si, pred in enumerate(out):
@@ -215,6 +266,11 @@ def test(data,
             f = save_dir / f'test_batch{batch_i}_pred.jpg'  # predictions
             Thread(target=plot_images, args=(img, output_to_target(out), paths, f, names), daemon=True).start()
 
+    c_r = pos_gts/(gts+min_value)
+    c_p = pos_predicts/(predicts+min_value)
+    
+    print("c_recall:{0:.4f}\nc_precision:{1:.4f}".format(c_r,c_p))
+    
     # Compute statistics
     stats = [np.concatenate(x, 0) for x in zip(*stats)]  # to numpy
     if len(stats) and stats[0].any():
@@ -225,6 +281,10 @@ def test(data,
     else:
         nt = torch.zeros(1)
 
+    if c_criteria:
+        mp = c_p
+        mr = c_r
+    
     # Print results
     pf = '%20s' + '%12i' * 2 + '%12.3g' * 4  # print format
     print(pf % ('all', seen, nt.sum(), mp, mr, map50, map))
@@ -283,161 +343,6 @@ def test(data,
         maps[c] = ap[i]
     return (mp, mr, map50, map, *(loss.cpu() / len(dataloader)).tolist()), maps, t
 
-def cxcywh2xyxy(cxcywh):
-    xyxy = [cxcywh[0]-cxcywh[2]/2,cxcywh[1]-cxcywh[3]/2,
-            cxcywh[0]+cxcywh[2]/2,cxcywh[1]+cxcywh[3]/2]
-    
-    return [float(x) for x in xyxy]
-
-def load_pred(txts_dir,txt_name):
-    boxes = []
-    if not os.path.exists(os.path.join(txts_dir,txt_name)):
-        return boxes
-    txt = open(os.path.join(txts_dir,txt_name))
-    
-    line = txt.readline()
-    
-    while line:
-        
-        eles = line.split(' ')
-        
-        box_info  = [float(x) for x in eles]
-        
-        box = box_info[:1]+cxcywh2xyxy(box_info[1:-1])+box_info[-1:]
-        
-        boxes.append(box)
-        
-        
-        line = txt.readline()
-        
-    return boxes
-
-
-
-def bb_intersection_over_union(boxA, boxB):
-    	# determine the (x, y)-coordinates of the intersection rectangle
-	xA = max(boxA[0], boxB[0])
-	yA = max(boxA[1], boxB[1])
-	xB = min(boxA[2], boxB[2])
-	yB = min(boxA[3], boxB[3])
-	# compute the area of intersection rectangle
-	interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
-	# compute the area of both the prediction and ground-truth
-	# rectangles
-	boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
-	boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
-	# compute the intersection over union by taking the intersection
-	# area and dividing it by the sum of prediction + ground-truth
-	# areas - the interesection area
-	iou = interArea / float(boxAArea + boxBArea - interArea)
-	# return the intersection over union value
-	return iou
-
-def box_center_in(boxA, boxB):
-    centerAx = (boxA[0]+boxA[2])/2
-    centerAy = (boxA[1]+boxA[3])/2
-    
-    return (centerAx>boxB[0]) and (centerAx<boxB[2]) and (centerAy>boxB[1]) and (centerAy<boxB[3])
-
-
-def draw_box(image,box,color):
-
-    height,width,_ = image.shape
-    # Line thickness of 2 px
-    thickness = 2
-    
-    # Using cv2.rectangle() method
-    # Draw a rectangle with blue line borders of thickness of 2 px
-    return cv2.rectangle(image, (int(box[0]*width),int(box[1]*height)),
-                         (int(box[2]*width),int(box[3]*height)), color, thickness)   
-
-def condition(boxA,boxB,iou_thred):
-    iou = bb_intersection_over_union(boxA,boxB)
-    center_in  = box_center_in(boxA,boxB)
-    #if iou>iou_thred or center_in:
-    if iou>iou_thred and center_in:
-    #if center_in:
-    #if iou>iou_thred:
-        return True
-    return False
-
-def condition_center(boxA,boxB,iou_thred):
-    iou = bb_intersection_over_union(boxA,boxB)
-    center_in  = box_center_in(boxA,boxB)
-    #if iou>iou_thred or center_in:
-    #if iou>iou_thred and center_in:
-    if center_in:
-    #if iou>iou_thred:
-        return True
-    return False
- 
-def evaluation2():
-    task = 'val'
-    iou_thred = 0.3
-    dataloader = create_dataloader('/data2/zzhang/annotation/erosiveulcer_fine/test0928.json',
-                                   640,1,32,opt,pad=0.5, rect=True,prefix=colorstr(f'{task}: '))[0]
-    
-    gt = 0
-    targeted_gt = 0
-    
-    pred = 0
-    targeted_pred = 0
-    
-    neg = 0
-    
-    true_neg = 0
-    
-    tally_labels = [0]
-    
-    for (img, targets, paths, shapes) in tqdm(dataloader):
-        #print(paths)
-        
-        image = cv2.imread(paths[0])
-            
-        pred_boxes = load_pred('runs/test/exp/labels',os.path.basename(paths[0]).replace('jpg','txt'))  
-                      
-        target_boxes = []
-        
-        save_show = False
-        
-        for target in targets:
-            target_label = float(target[1])
-            target_box = cxcywh2xyxy(target[2:])
-            target_boxes.append([target_label]+target_box)
-            if target_label in tally_labels:
-                image = draw_box(image,target_box,(255,0,0))
-                gt+=1
-                save_show = True
-                for pred_box in pred_boxes:
-                    if int(pred_box[0])==int(target_label):
-                        if condition(target_box,pred_box[1:-1],iou_thred):
-                            targeted_gt+=1
-                            break
-        
-        if not save_show:
-            neg+=1                    
-
-        for pred_box in pred_boxes:
-            if pred_box[0] in tally_labels:
-                image = draw_box(image,pred_box[1:-1],(0,0,255))
-                pred+=1
-                save_show = True
-                for target_box in target_boxes:
-                    if int(target_box[0]) == int(pred_box[0]):
-                        if condition(pred_box[1:-1],target_box[1:],iou_thred):
-                            targeted_pred+=1
-                            break
-                        
-        if not save_show:
-            true_neg+=1
-            
-        #if save_show:
-        #    cv2.imwrite(os.path.join('runs/test/exp/shows',os.path.basename(paths[0])),image)
-                    
-    print(targeted_gt/gt)#-------------recall
-    print(targeted_pred/pred)#--------------precision 
-    print(true_neg/neg)#----------------specifity   
-        
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='test.py')
@@ -460,14 +365,13 @@ if __name__ == '__main__':
     parser.add_argument('--name', default='exp', help='save to project/name')
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
     parser.add_argument('--no-trace', action='store_true', help='don`t trace model')
+    parser.add_argument('--v5-metric', action='store_true', help='assume maximum recall as 1.0 in AP calculation')
     opt = parser.parse_args()
     opt.save_json |= opt.data.endswith('coco.yaml')
     opt.data = check_file(opt.data)  # check file
     print(opt)
-    
-    evaluation2()
     #check_requirements()
-    '''
+
     if opt.task in ('train', 'val', 'test'):  # run normally
         test(opt.data,
              opt.weights,
@@ -483,11 +387,12 @@ if __name__ == '__main__':
              save_hybrid=opt.save_hybrid,
              save_conf=opt.save_conf,
              trace=not opt.no_trace,
+             v5_metric=opt.v5_metric
              )
 
     elif opt.task == 'speed':  # speed benchmarks
         for w in opt.weights:
-            test(opt.data, w, opt.batch_size, opt.img_size, 0.25, 0.45, save_json=False, plots=False)
+            test(opt.data, w, opt.batch_size, opt.img_size, 0.25, 0.45, save_json=False, plots=False, v5_metric=opt.v5_metric)
 
     elif opt.task == 'study':  # run over a range of settings and save/plot
         # python test.py --task study --data coco.yaml --iou 0.65 --weights yolov7.pt
@@ -498,11 +403,8 @@ if __name__ == '__main__':
             for i in x:  # img-size
                 print(f'\nRunning {f} point {i}...')
                 r, _, t = test(opt.data, w, opt.batch_size, i, opt.conf_thres, opt.iou_thres, opt.save_json,
-                               plots=False)
+                               plots=False, v5_metric=opt.v5_metric)
                 y.append(r + t)  # results and times
             np.savetxt(f, y, fmt='%10.4g')  # save
         os.system('zip -r study.zip study_*.txt')
         plot_study_txt(x=x)  # plot
-
-    '''
-

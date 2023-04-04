@@ -8,7 +8,6 @@ import numpy as np
 import torch
 import yaml
 from tqdm import tqdm
-import cv2
 
 from models.experimental import attempt_load
 from utils.datasets import create_dataloader
@@ -17,7 +16,7 @@ from utils.general import coco80_to_coco91_class, check_dataset, check_file, che
 from utils.metrics import ap_per_class, ConfusionMatrix
 from utils.plots import plot_images, output_to_target, plot_study_txt
 from utils.torch_utils import select_device, time_synchronized, TracedModel
-
+from evaluation import condition,condition_center
 
 def test(data,
          weights=None,
@@ -40,7 +39,9 @@ def test(data,
          compute_loss=None,
          half_precision=True,
          trace=False,
-         is_coco=False):
+         is_coco=False,
+         v5_metric=False,
+         c_criteria = True):
     # Initialize/load model and set device
     training = model is not None
     if training:  # called by train.py
@@ -60,7 +61,7 @@ def test(data,
         imgsz = check_img_size(imgsz, s=gs)  # check img_size
         
         if trace:
-            model = TracedModel(model, device, opt.img_size)
+            model = TracedModel(model, device, imgsz)
 
     # Half
     half = device.type != 'cpu' and half_precision  # half precision only supported on CUDA
@@ -90,6 +91,9 @@ def test(data,
         dataloader = create_dataloader(data[task], imgsz, batch_size, gs, opt, pad=0.5, rect=True,
                                        prefix=colorstr(f'{task}: '))[0]
 
+    if v5_metric:
+        print("Testing with YOLOv5 AP metric...")
+    
     seen = 0
     confusion_matrix = ConfusionMatrix(nc=nc)
     names = {k: v for k, v in enumerate(model.names if hasattr(model, 'names') else model.module.names)}
@@ -98,6 +102,22 @@ def test(data,
     p, r, f1, mp, mr, map50, map, t0, t1 = 0., 0., 0., 0., 0., 0., 0., 0., 0.
     loss = torch.zeros(3, device=device)
     jdict, stats, ap, ap_class, wandb_images = [], [], [], [], []
+    
+    #这部分变量用来计算特殊recall和precision的计算值
+    gts = 0
+    pos_gts = 0
+    c_r = 0.0
+    
+    predicts = 0
+    pos_predicts = 0    
+    c_p = 0.0
+    
+    selected_cat_ids = [0]
+    pos_iou_thres = 0.2
+    
+    min_value = 0.000001
+    
+    
     for batch_i, (img, targets, paths, shapes) in enumerate(tqdm(dataloader, desc=s)):
         img = img.to(device, non_blocking=True)
         img = img.half() if half else img.float()  # uint8 to fp16/32
@@ -118,9 +138,40 @@ def test(data,
             # Run NMS
             targets[:, 2:] *= torch.Tensor([width, height, width, height]).to(device)  # to pixels
             lb = [targets[targets[:, 0] == i, 1:] for i in range(nb)] if save_hybrid else []  # for autolabelling
+            
+            out_c = out.clone()
+            
             t = time_synchronized()
             out = non_max_suppression(out, conf_thres=conf_thres, iou_thres=iou_thres, labels=lb, multi_label=True)
             t1 += time_synchronized() - t
+            
+            out_c = non_max_suppression(out_c, conf_thres=0.25, iou_thres=iou_thres, labels=lb, multi_label=True)
+        #这里采用宽松策略进行结果统计
+        for si,predn in enumerate(out_c):
+            pred = predn.clone()
+            labels = targets[targets[:, 0] == si, 1:]
+            
+            scale_coords(img[si].shape[1:], pred[:, :4], shapes[si][0], shapes[si][1])  # native-space pred
+            box = pred[:, :4]#xyxy2xywh(pred[:, :4])  # xywh
+            #box[:, :2] -= box[:, 2:] / 2  # xy center to top-left corner
+            
+            # target boxes
+            tbox = xywh2xyxy(labels[:, 1:5])
+            scale_coords(img[si].shape[1:], tbox, shapes[si][0], shapes[si][1])  # native-space labels
+            
+            for tl,tb in zip(labels.tolist(),tbox.tolist()):
+                gts+=1
+                for pp, pb in zip(pred.tolist(), box.tolist()):
+                    if tl[0] == pp[5] and (tl[0] in selected_cat_ids) and condition(tb,pb,pos_iou_thres):
+                        pos_gts+=1
+                        break
+                
+            for pp, pb in zip(pred.tolist(), box.tolist()):
+                predicts+=1
+                for tl,tb in zip(labels.tolist(),tbox.tolist()):
+                    if pp[5] == tl[0] and (pp[5] in selected_cat_ids) and condition(pb,tb,pos_iou_thres):
+                        pos_predicts+=1
+                        break
 
         # Statistics per image
         for si, pred in enumerate(out):
@@ -215,6 +266,11 @@ def test(data,
             f = save_dir / f'test_batch{batch_i}_pred.jpg'  # predictions
             Thread(target=plot_images, args=(img, output_to_target(out), paths, f, names), daemon=True).start()
 
+    c_r = pos_gts/(gts+min_value)
+    c_p = pos_predicts/(predicts+min_value)
+    
+    print("c_recall:{0:.4f}\nc_precision:{1:.4f}".format(c_r,c_p))
+    
     # Compute statistics
     stats = [np.concatenate(x, 0) for x in zip(*stats)]  # to numpy
     if len(stats) and stats[0].any():
@@ -225,6 +281,10 @@ def test(data,
     else:
         nt = torch.zeros(1)
 
+    if c_criteria:
+        mp = c_p
+        mr = c_r
+    
     # Print results
     pf = '%20s' + '%12i' * 2 + '%12.3g' * 4  # print format
     print(pf % ('all', seen, nt.sum(), mp, mr, map50, map))
@@ -283,161 +343,292 @@ def test(data,
         maps[c] = ap[i]
     return (mp, mr, map50, map, *(loss.cpu() / len(dataloader)).tolist()), maps, t
 
-def cxcywh2xyxy(cxcywh):
-    xyxy = [cxcywh[0]-cxcywh[2]/2,cxcywh[1]-cxcywh[3]/2,
-            cxcywh[0]+cxcywh[2]/2,cxcywh[1]+cxcywh[3]/2]
-    
-    return [float(x) for x in xyxy]
+def vtest(data,
+         weights=None,
+         batch_size=32,
+         imgsz=640,
+         conf_thres=0.001,
+         iou_thres=0.6,  # for NMS
+         save_json=False,
+         single_cls=False,
+         augment=False,
+         verbose=False,
+         model=None,
+         dataloader=None,
+         save_dir=Path(''),  # for saving images
+         save_txt=False,  # for auto-labelling
+         save_hybrid=False,  # for hybrid auto-labelling
+         save_conf=False,  # save auto-label confidences
+         plots=True,
+         wandb_logger=None,
+         compute_loss=None,
+         half_precision=True,
+         trace=False,
+         is_coco=False,
+         v5_metric=False,
+         c_criteria = True):
+    # Initialize/load model and set device
+    training = model is not None
+    if training:  # called by train.py
+        device = next(model.parameters()).device  # get model device
 
-def load_pred(txts_dir,txt_name):
-    boxes = []
-    if not os.path.exists(os.path.join(txts_dir,txt_name)):
-        return boxes
-    txt = open(os.path.join(txts_dir,txt_name))
-    
-    line = txt.readline()
-    
-    while line:
+    else:  # called directly
+        set_logging()
+        device = select_device(opt.device, batch_size=batch_size)
+
+        # Directories
+        save_dir = Path(increment_path(Path(opt.project) / opt.name, exist_ok=opt.exist_ok))  # increment run
+        (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
+
+        # Load model
+        model = attempt_load(weights, map_location=device)  # load FP32 model
+        gs = max(int(model.stride.max()), 32)  # grid size (max stride)
+        imgsz = check_img_size(imgsz, s=gs)  # check img_size
         
-        eles = line.split(' ')
-        
-        box_info  = [float(x) for x in eles]
-        
-        box = box_info[:1]+cxcywh2xyxy(box_info[1:-1])+box_info[-1:]
-        
-        boxes.append(box)
-        
-        
-        line = txt.readline()
-        
-    return boxes
+        if trace:
+            model = TracedModel(model, device, imgsz)
 
+    # Half
+    half = device.type != 'cpu' and half_precision  # half precision only supported on CUDA
+    if half:
+        model.half()
 
+    # Configure
+    model.eval()
+    if isinstance(data, str):
+        is_coco = data.endswith('coco.yaml')
+        with open(data) as f:
+            data = yaml.load(f, Loader=yaml.SafeLoader)
+    check_dataset(data)  # check
+    nc = 1 if single_cls else int(data['nc'])  # number of classes
+    iouv = torch.linspace(0.5, 0.95, 10).to(device)  # iou vector for mAP@0.5:0.95
+    niou = iouv.numel()
 
-def bb_intersection_over_union(boxA, boxB):
-    	# determine the (x, y)-coordinates of the intersection rectangle
-	xA = max(boxA[0], boxB[0])
-	yA = max(boxA[1], boxB[1])
-	xB = min(boxA[2], boxB[2])
-	yB = min(boxA[3], boxB[3])
-	# compute the area of intersection rectangle
-	interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
-	# compute the area of both the prediction and ground-truth
-	# rectangles
-	boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
-	boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
-	# compute the intersection over union by taking the intersection
-	# area and dividing it by the sum of prediction + ground-truth
-	# areas - the interesection area
-	iou = interArea / float(boxAArea + boxBArea - interArea)
-	# return the intersection over union value
-	return iou
+    # Logging
+    log_imgs = 0
+    if wandb_logger and wandb_logger.wandb:
+        log_imgs = min(wandb_logger.log_imgs, 100)
+    # Dataloader
+    if not training:
+        if device.type != 'cpu':
+            model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))  # run once
+        task = opt.task if opt.task in ('train', 'val', 'test') else 'val'  # path to train/val/test images
+        dataloader = create_dataloader(data[task], imgsz, batch_size, gs, opt, pad=0.5, rect=True,
+                                       prefix=colorstr(f'{task}: '))[0]
 
-def box_center_in(boxA, boxB):
-    centerAx = (boxA[0]+boxA[2])/2
-    centerAy = (boxA[1]+boxA[3])/2
+    if v5_metric:
+        print("Testing with YOLOv5 AP metric...")
     
-    return (centerAx>boxB[0]) and (centerAx<boxB[2]) and (centerAy>boxB[1]) and (centerAy<boxB[3])
+    seen = 0
+    confusion_matrix = ConfusionMatrix(nc=nc)
+    names = {k: v for k, v in enumerate(model.names if hasattr(model, 'names') else model.module.names)}
+    coco91class = coco80_to_coco91_class()
+    s = ('%20s' + '%12s' * 6) % ('Class', 'Images', 'Labels', 'P', 'R', 'mAP@.5', 'mAP@.5:.95')
+    p, r, f1, mp, mr, map50, map, t0, t1 = 0., 0., 0., 0., 0., 0., 0., 0., 0.
+    loss = torch.zeros(3, device=device)
+    jdict, stats, ap, ap_class, wandb_images = [], [], [], [], []
+    
+    #这部分变量用来计算特殊recall和precision的计算值
+    gts = 0
+    pos_gts = 0
+    c_r = 0.0
+    
+    predicts = 0
+    pos_predicts = 0    
+    c_p = 0.0
+    
+    selected_cat_ids = [0]
+    pos_iou_thres = 0.2
+    
+    min_value = 0.000001
+    
+    
+    for batch_i, (img, targets, paths, shapes) in enumerate(tqdm(dataloader, desc=s)):
+        img = img.to(device, non_blocking=True)
+        img = img.half() if half else img.float()  # uint8 to fp16/32
+        img /= 255.0  # 0 - 255 to 0.0 - 1.0
+        targets = targets.to(device)
+        nb, _, height, width = img.shape  # batch size, channels, height, width
 
+        with torch.no_grad():
+            # Run model
+            t = time_synchronized()
+            out, train_out = model(img, augment=augment)  # inference and training outputs
+            t0 += time_synchronized() - t
 
-def draw_box(image,box,color):
+            # Compute loss
+            if compute_loss:
+                loss += compute_loss([x.float() for x in train_out], targets)[1][:3]  # box, obj, cls
 
-    height,width,_ = image.shape
-    # Line thickness of 2 px
-    thickness = 2
-    
-    # Using cv2.rectangle() method
-    # Draw a rectangle with blue line borders of thickness of 2 px
-    return cv2.rectangle(image, (int(box[0]*width),int(box[1]*height)),
-                         (int(box[2]*width),int(box[3]*height)), color, thickness)   
-
-def condition(boxA,boxB,iou_thred):
-    iou = bb_intersection_over_union(boxA,boxB)
-    center_in  = box_center_in(boxA,boxB)
-    #if iou>iou_thred or center_in:
-    if iou>iou_thred and center_in:
-    #if center_in:
-    #if iou>iou_thred:
-        return True
-    return False
-
-def condition_center(boxA,boxB,iou_thred):
-    iou = bb_intersection_over_union(boxA,boxB)
-    center_in  = box_center_in(boxA,boxB)
-    #if iou>iou_thred or center_in:
-    #if iou>iou_thred and center_in:
-    if center_in:
-    #if iou>iou_thred:
-        return True
-    return False
- 
-def evaluation2():
-    task = 'val'
-    iou_thred = 0.3
-    dataloader = create_dataloader('/data2/zzhang/annotation/erosiveulcer_fine/test0928.json',
-                                   640,1,32,opt,pad=0.5, rect=True,prefix=colorstr(f'{task}: '))[0]
-    
-    gt = 0
-    targeted_gt = 0
-    
-    pred = 0
-    targeted_pred = 0
-    
-    neg = 0
-    
-    true_neg = 0
-    
-    tally_labels = [0]
-    
-    for (img, targets, paths, shapes) in tqdm(dataloader):
-        #print(paths)
-        
-        image = cv2.imread(paths[0])
+            # Run NMS
+            targets[:, 2:] *= torch.Tensor([width, height, width, height]).to(device)  # to pixels
+            lb = [targets[targets[:, 0] == i, 1:] for i in range(nb)] if save_hybrid else []  # for autolabelling
             
-        pred_boxes = load_pred('runs/test/exp/labels',os.path.basename(paths[0]).replace('jpg','txt'))  
-                      
-        target_boxes = []
-        
-        save_show = False
-        
-        for target in targets:
-            target_label = float(target[1])
-            target_box = cxcywh2xyxy(target[2:])
-            target_boxes.append([target_label]+target_box)
-            if target_label in tally_labels:
-                image = draw_box(image,target_box,(255,0,0))
-                gt+=1
-                save_show = True
-                for pred_box in pred_boxes:
-                    if int(pred_box[0])==int(target_label):
-                        if condition(target_box,pred_box[1:-1],iou_thred):
-                            targeted_gt+=1
-                            break
-        
-        if not save_show:
-            neg+=1                    
-
-        for pred_box in pred_boxes:
-            if pred_box[0] in tally_labels:
-                image = draw_box(image,pred_box[1:-1],(0,0,255))
-                pred+=1
-                save_show = True
-                for target_box in target_boxes:
-                    if int(target_box[0]) == int(pred_box[0]):
-                        if condition(pred_box[1:-1],target_box[1:],iou_thred):
-                            targeted_pred+=1
-                            break
-                        
-        if not save_show:
-            true_neg+=1
+            out_c = out.clone()
             
-        #if save_show:
-        #    cv2.imwrite(os.path.join('runs/test/exp/shows',os.path.basename(paths[0])),image)
-                    
-    print(targeted_gt/gt)#-------------recall
-    print(targeted_pred/pred)#--------------precision 
-    print(true_neg/neg)#----------------specifity   
-        
+            t = time_synchronized()
+            out = non_max_suppression(out, conf_thres=conf_thres, iou_thres=iou_thres, labels=lb, multi_label=True)
+            t1 += time_synchronized() - t
+            
+            out_c = non_max_suppression(out_c, conf_thres=0.3, iou_thres=0.5, labels=lb, multi_label=True)
+        #这里采用宽松策略进行结果统计
+        for si,predn in enumerate(out_c):
+            pred = predn.clone()
+            labels = targets[targets[:, 0] == si, 1:]
+            
+            scale_coords(img[si].shape[1:], pred[:, :4], shapes[si][0], shapes[si][1])  # native-space pred
+            box = pred[:, :4]#xyxy2xywh(pred[:, :4])  # xywh
+            #box[:, :2] -= box[:, 2:] / 2  # xy center to top-left corner
+            
+            # target boxes
+            tbox = xywh2xyxy(labels[:, 1:5])
+            scale_coords(img[si].shape[1:], tbox, shapes[si][0], shapes[si][1])  # native-space labels
+            
+            for tl,tb in zip(labels.tolist(),tbox.tolist()):
+                if tl[0] in selected_cat_ids:
+                    gts+=1
+                    for pp, pb in zip(pred.tolist(), box.tolist()):
+                        if tl[0] == pp[5] and (tl[0] in selected_cat_ids) and condition_center(tb,pb,pos_iou_thres):
+                            pos_gts+=1
+                            break
+                
+            for pp, pb in zip(pred.tolist(), box.tolist()):
+                if pp[5] in selected_cat_ids:
+                    predicts+=1
+                    for tl,tb in zip(labels.tolist(),tbox.tolist()):
+                        if pp[5] == tl[0] and (pp[5] in selected_cat_ids) and condition_center(pb,tb,pos_iou_thres):
+                            pos_predicts+=1
+                            break
+
+        # Statistics per image
+        for si, pred in enumerate(out):
+            labels = targets[targets[:, 0] == si, 1:]
+            nl = len(labels)
+            tcls = labels[:, 0].tolist() if nl else []  # target class
+            path = Path(paths[si])
+            seen += 1
+
+            if len(pred) == 0:
+                if nl:
+                    stats.append((torch.zeros(0, niou, dtype=torch.bool), torch.Tensor(), torch.Tensor(), tcls))
+                continue
+
+            # Predictions
+            predn = pred.clone()
+            scale_coords(img[si].shape[1:], predn[:, :4], shapes[si][0], shapes[si][1])  # native-space pred
+
+            # Append to text file
+            if save_txt:
+                gn = torch.tensor(shapes[si][0])[[1, 0, 1, 0]]  # normalization gain whwh
+                for *xyxy, conf, cls in predn.tolist():
+                    xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
+                    line = (cls, *xywh, conf) if save_conf else (cls, *xywh)  # label format
+                    with open(save_dir / 'labels' / (path.stem + '.txt'), 'a') as f:
+                        f.write(('%g ' * len(line)).rstrip() % line + '\n')
+
+            # W&B logging - Media Panel Plots
+            if len(wandb_images) < log_imgs and wandb_logger.current_epoch > 0:  # Check for test operation
+                if wandb_logger.current_epoch % wandb_logger.bbox_interval == 0:
+                    box_data = [{"position": {"minX": xyxy[0], "minY": xyxy[1], "maxX": xyxy[2], "maxY": xyxy[3]},
+                                 "class_id": int(cls),
+                                 "box_caption": "%s %.3f" % (names[cls], conf),
+                                 "scores": {"class_score": conf},
+                                 "domain": "pixel"} for *xyxy, conf, cls in pred.tolist()]
+                    boxes = {"predictions": {"box_data": box_data, "class_labels": names}}  # inference-space
+                    wandb_images.append(wandb_logger.wandb.Image(img[si], boxes=boxes, caption=path.name))
+            wandb_logger.log_training_progress(predn, path, names) if wandb_logger and wandb_logger.wandb_run else None
+
+            # Append to pycocotools JSON dictionary
+            if save_json:
+                # [{"image_id": 42, "category_id": 18, "bbox": [258.15, 41.29, 348.26, 243.78], "score": 0.236}, ...
+                image_id = int(path.stem) if path.stem.isnumeric() else path.stem
+                box = xyxy2xywh(predn[:, :4])  # xywh
+                box[:, :2] -= box[:, 2:] / 2  # xy center to top-left corner
+                for p, b in zip(pred.tolist(), box.tolist()):
+                    jdict.append({'image_id': image_id,
+                                  'category_id': coco91class[int(p[5])] if is_coco else int(p[5]),
+                                  'bbox': [round(x, 3) for x in b],
+                                  'score': round(p[4], 5)})
+
+            # Assign all predictions as incorrect
+            correct = torch.zeros(pred.shape[0], niou, dtype=torch.bool, device=device)
+            if nl:
+                detected = []  # target indices
+                tcls_tensor = labels[:, 0]
+
+                # target boxes
+                tbox = xywh2xyxy(labels[:, 1:5])
+                scale_coords(img[si].shape[1:], tbox, shapes[si][0], shapes[si][1])  # native-space labels
+                if plots:
+                    confusion_matrix.process_batch(predn, torch.cat((labels[:, 0:1], tbox), 1))
+
+                # Per target class
+                for cls in torch.unique(tcls_tensor):
+                    ti = (cls == tcls_tensor).nonzero(as_tuple=False).view(-1)  # prediction indices
+                    pi = (cls == pred[:, 5]).nonzero(as_tuple=False).view(-1)  # target indices
+
+                    # Search for detections
+                    if pi.shape[0]:
+                        # Prediction to target ious
+                        ious, i = box_iou(predn[pi, :4], tbox[ti]).max(1)  # best ious, indices
+
+                        # Append detections
+                        detected_set = set()
+                        for j in (ious > iouv[0]).nonzero(as_tuple=False):
+                            d = ti[i[j]]  # detected target
+                            if d.item() not in detected_set:
+                                detected_set.add(d.item())
+                                detected.append(d)
+                                correct[pi[j]] = ious[j] > iouv  # iou_thres is 1xn
+                                if len(detected) == nl:  # all targets already located in image
+                                    break
+
+            # Append statistics (correct, conf, pcls, tcls)
+            stats.append((correct.cpu(), pred[:, 4].cpu(), pred[:, 5].cpu(), tcls))
+
+    c_r = pos_gts/(gts+min_value)
+    c_p = pos_predicts/(predicts+min_value)
+    
+    print("pos_gts:{0},gts:{1},pos_predicts:{2},predicts:{3}".format(pos_gts,gts,pos_predicts,predicts))
+    print("c_recall:{0:.4f}\nc_precision:{1:.4f}".format(c_r,c_p))
+    
+    # Compute statistics
+    stats = [np.concatenate(x, 0) for x in zip(*stats)]  # to numpy
+    if len(stats) and stats[0].any():
+        p, r, ap, f1, ap_class = ap_per_class(*stats, plot=plots, save_dir=save_dir, names=names)
+        ap50, ap = ap[:, 0], ap.mean(1)  # AP@0.5, AP@0.5:0.95
+        mp, mr, map50, map = p.mean(), r.mean(), ap50.mean(), ap.mean()
+        nt = np.bincount(stats[3].astype(np.int64), minlength=nc)  # number of targets per class
+    else:
+        nt = torch.zeros(1)
+
+    if c_criteria:
+        mp = c_p
+        mr = c_r
+    
+    # Print results
+    pf = '%20s' + '%12i' * 2 + '%12.3g' * 4  # print format
+    print(pf % ('all', seen, nt.sum(), mp, mr, map50, map))
+
+    # Print results per class
+    if (verbose or (nc < 50 and not training)) and nc > 1 and len(stats):
+        for i, c in enumerate(ap_class):
+            print(pf % (names[c], seen, nt[c], p[i], r[i], ap50[i], ap[i]))
+
+    # Print speeds
+    t = tuple(x / seen * 1E3 for x in (t0, t1, t0 + t1)) + (imgsz, imgsz, batch_size)  # tuple
+    if not training:
+        print('Speed: %.1f/%.1f/%.1f ms inference/NMS/total per %gx%g image at batch-size %g' % t)
+
+    # Return results
+    model.float()  # for training
+    if not training:
+        s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
+        print(f"Results saved to {save_dir}{s}")
+    maps = np.zeros(nc) + map
+    for i, c in enumerate(ap_class):
+        maps[c] = ap[i]
+    return (mp, mr, map50, map, *(loss.cpu() / len(dataloader)).tolist()), maps, t
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='test.py')
@@ -460,14 +651,13 @@ if __name__ == '__main__':
     parser.add_argument('--name', default='exp', help='save to project/name')
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
     parser.add_argument('--no-trace', action='store_true', help='don`t trace model')
+    parser.add_argument('--v5-metric', action='store_true', help='assume maximum recall as 1.0 in AP calculation')
     opt = parser.parse_args()
     opt.save_json |= opt.data.endswith('coco.yaml')
     opt.data = check_file(opt.data)  # check file
     print(opt)
-    
-    evaluation2()
     #check_requirements()
-    '''
+
     if opt.task in ('train', 'val', 'test'):  # run normally
         test(opt.data,
              opt.weights,
@@ -483,11 +673,12 @@ if __name__ == '__main__':
              save_hybrid=opt.save_hybrid,
              save_conf=opt.save_conf,
              trace=not opt.no_trace,
+             v5_metric=opt.v5_metric
              )
 
     elif opt.task == 'speed':  # speed benchmarks
         for w in opt.weights:
-            test(opt.data, w, opt.batch_size, opt.img_size, 0.25, 0.45, save_json=False, plots=False)
+            test(opt.data, w, opt.batch_size, opt.img_size, 0.25, 0.45, save_json=False, plots=False, v5_metric=opt.v5_metric)
 
     elif opt.task == 'study':  # run over a range of settings and save/plot
         # python test.py --task study --data coco.yaml --iou 0.65 --weights yolov7.pt
@@ -498,11 +689,8 @@ if __name__ == '__main__':
             for i in x:  # img-size
                 print(f'\nRunning {f} point {i}...')
                 r, _, t = test(opt.data, w, opt.batch_size, i, opt.conf_thres, opt.iou_thres, opt.save_json,
-                               plots=False)
+                               plots=False, v5_metric=opt.v5_metric)
                 y.append(r + t)  # results and times
             np.savetxt(f, y, fmt='%10.4g')  # save
         os.system('zip -r study.zip study_*.txt')
         plot_study_txt(x=x)  # plot
-
-    '''
-

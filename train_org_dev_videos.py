@@ -21,7 +21,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-import test_org as test  # import test.py to get mAP after each epoch
+import test_org_dev as test  # import test.py to get mAP after each epoch
 from models.experimental import attempt_load
 from models.yolo import Model
 from utils.autoanchor import check_anchors
@@ -56,6 +56,8 @@ def train(hyp, opt, device, tb_writer=None):
     best_f05 = wdir / 'best_f05.pt'
     
     best_r = wdir / "best_r.pt"
+    
+    best_videof2 = wdir / "best_vf2.pt"
     
     results_file = save_dir / 'results.txt'
 
@@ -106,6 +108,7 @@ def train(hyp, opt, device, tb_writer=None):
         check_dataset(data_dict)  # check
     train_path = data_dict['train']
     test_path = data_dict['val']
+    video_path = data_dict["test"]
 
     # Freeze
     freeze = [f'model.{x}.' for x in (freeze if len(freeze) > 1 else range(freeze[0]))]  # parameter names to freeze (full or partial)
@@ -211,6 +214,7 @@ def train(hyp, opt, device, tb_writer=None):
     # Resume
     start_epoch, best_fitness = 0, 0.0
     best_fitness1,best_fitness2,best_fitness05, best_recall = 0.0,0.0,0.0,0.0
+    best_vf2 = 0.0
     if pretrained:
         # Optimizer
         if ckpt['optimizer'] is not None:
@@ -262,7 +266,12 @@ def train(hyp, opt, device, tb_writer=None):
 
     # Process 0
     if rank in [-1, 0]:
-        testloader = create_dataloader(test_path, imgsz_test, batch_size * 2, gs, opt,  # testloader
+        testloader = create_dataloader(test_path, imgsz_test, batch_size, gs, opt,  # testloader
+                                       hyp=hyp, cache=opt.cache_images and not opt.notest, rect=True, rank=-1,
+                                       world_size=opt.world_size, workers=opt.workers,
+                                       pad=0.5, prefix=colorstr('val: '))[0]
+        
+        videoloader = create_dataloader(video_path, imgsz_test, 256, gs, opt,  # videoloader
                                        hyp=hyp, cache=opt.cache_images and not opt.notest, rect=True, rank=-1,
                                        world_size=opt.world_size, workers=opt.workers,
                                        pad=0.5, prefix=colorstr('val: '))[0]
@@ -315,6 +324,7 @@ def train(hyp, opt, device, tb_writer=None):
                 f'Starting training for {epochs} epochs...')
     torch.save(model, wdir / 'init.pt')
     best_epoch_index,best_f1_epoch_index,best_f2_epoch_index,best_f05_epoch_index, best_r_epoch_index = 0,0,0,0,0
+    best_vf2_epoch_index = 0
     for epoch in range(start_epoch, epochs):  # epoch ------------------------------------------------------------------
         model.train()
 
@@ -424,7 +434,7 @@ def train(hyp, opt, device, tb_writer=None):
             if not opt.notest or final_epoch:  # Calculate mAP
                 wandb_logger.current_epoch = epoch + 1
                 results, maps, times = test.test(data_dict,
-                                                 batch_size=batch_size * 2,
+                                                 batch_size=batch_size,
                                                  imgsz=imgsz_test,
                                                  model=ema.ema,
                                                  single_cls=opt.single_cls,
@@ -435,7 +445,23 @@ def train(hyp, opt, device, tb_writer=None):
                                                  wandb_logger=wandb_logger,
                                                  compute_loss=compute_loss,
                                                  is_coco=is_coco,
-                                                 v5_metric=opt.v5_metric)
+                                                 v5_metric=opt.v5_metric,
+                                                 c_criteria=opt.c_criteria)
+                
+                vresults, vmaps, vtimes = test.vtest(data_dict,
+                                                 batch_size=256,
+                                                 imgsz=imgsz_test,
+                                                 model=ema.ema,
+                                                 single_cls=opt.single_cls,
+                                                 dataloader=videoloader,
+                                                 save_dir=save_dir,
+                                                 verbose=nc < 50 and final_epoch,
+                                                 plots=plots and final_epoch,
+                                                 wandb_logger=wandb_logger,
+                                                 compute_loss=compute_loss,
+                                                 is_coco=is_coco,
+                                                 v5_metric=opt.v5_metric,
+                                                 c_criteria=not opt.c_criteria)                
 
             # Write
             with open(results_file, 'a') as f:
@@ -474,6 +500,10 @@ def train(hyp, opt, device, tb_writer=None):
             Rc = fitness_r(np.array(results).reshape(1, -1))
             if Rc > best_recall:
                 best_recall = Rc
+                
+            vf2 = fitness_f2(np.array(vresults).reshape(1,-1))
+            if vf2 > best_vf2:
+                best_vf2 = vf2
             
             wandb_logger.end_epoch(best_result=best_fitness == fi)
 
@@ -510,7 +540,12 @@ def train(hyp, opt, device, tb_writer=None):
                 if best_recall == Rc:
                     best_r_epoch_index = epoch
                     ckpt['best_recall'] = best_recall
-                    torch.save(ckpt, best_r)                
+                    torch.save(ckpt, best_r)     
+                    
+                if best_vf2==vf2:
+                    best_vf2_epoch_index = epoch
+                    ckpt['best_vf2'] = best_vf2
+                    torch.save(ckpt, best_videof2)                                       
                 
                 if best_fitness == fi:
                     best_epoch_index = epoch
@@ -528,8 +563,8 @@ def train(hyp, opt, device, tb_writer=None):
                         wandb_logger.log_model(
                             last.parent, opt, epoch, fi, best_model=best_fitness == fi)
                 del ckpt
-        print('best_epoch_index:{0},best_f1_epoch_index:{1},best_f2_epoch_index:{2},best_f05_epoch_index:{3},best_r_epoch_index:{4}'
-              .format(best_epoch_index,best_f1_epoch_index,best_f2_epoch_index,best_f05_epoch_index,best_r_epoch_index))
+        print('best_epoch_index:{0},best_f1_epoch_index:{1},best_f2_epoch_index:{2},best_f05_epoch_index:{3},best_r_epoch_index:{4},best_vf2_epoch_index:{5}'
+              .format(best_epoch_index,best_f1_epoch_index,best_f2_epoch_index,best_f05_epoch_index,best_r_epoch_index,best_vf2_epoch_index))
         # end epoch ----------------------------------------------------------------------------------------------------
     # end training
     if rank in [-1, 0]:
@@ -545,7 +580,7 @@ def train(hyp, opt, device, tb_writer=None):
         if opt.data.endswith('coco.yaml') and nc == 80:  # if COCO
             for m in (last, best) if best.exists() else (last):  # speed, mAP tests
                 results, _, _ = test.test(opt.data,
-                                          batch_size=batch_size * 2,
+                                          batch_size=batch_size,
                                           imgsz=imgsz_test,
                                           conf_thres=0.001,
                                           iou_thres=0.7,
@@ -582,7 +617,7 @@ if __name__ == '__main__':
     parser.add_argument('--cfg', type=str, default='', help='model.yaml path')
     parser.add_argument('--data', type=str, default='data/coco.yaml', help='data.yaml path')
     parser.add_argument('--hyp', type=str, default='data/hyp.scratch.p5.yaml', help='hyperparameters path')
-    parser.add_argument('--epochs', type=int, default=300)
+    parser.add_argument('--epochs', type=int, default=150)
     parser.add_argument('--batch-size', type=int, default=16, help='total batch size for all GPUs')
     parser.add_argument('--img-size', nargs='+', type=int, default=[640, 640], help='[train, test] image sizes')
     parser.add_argument('--rect', action='store_true', help='rectangular training')
@@ -600,7 +635,7 @@ if __name__ == '__main__':
     parser.add_argument('--adam', action='store_true', help='use torch.optim.Adam() optimizer')
     parser.add_argument('--sync-bn', action='store_true', help='use SyncBatchNorm, only available in DDP mode')
     parser.add_argument('--local_rank', type=int, default=-1, help='DDP parameter, do not modify')
-    parser.add_argument('--workers', type=int, default=8, help='maximum number of dataloader workers')
+    parser.add_argument('--workers', type=int, default=128, help='maximum number of dataloader workers')
     parser.add_argument('--project', default='runs/train', help='save to project/name')
     parser.add_argument('--entity', default=None, help='W&B entity')
     parser.add_argument('--name', default='exp', help='save to project/name')
@@ -614,6 +649,7 @@ if __name__ == '__main__':
     parser.add_argument('--artifact_alias', type=str, default="latest", help='version of dataset artifact to be used')
     parser.add_argument('--freeze', nargs='+', type=int, default=[0], help='Freeze layers: backbone of yolov7=50, first3=0 1 2')
     parser.add_argument('--v5-metric', action='store_true', help='assume maximum recall as 1.0 in AP calculation')
+    parser.add_argument('--c_criteria', action='store_true', help='with c_criteria')
     opt = parser.parse_args()
 
     # Set DDP variables
