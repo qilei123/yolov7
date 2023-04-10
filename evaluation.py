@@ -353,7 +353,7 @@ def draw_box(image,box,color):
 
 def condition(boxA,boxB,iou_thred):
     iou = bb_intersection_over_union(boxA,boxB)
-    center_in  = box_center_in(boxA,boxB)
+    center_in  = box_center_in(boxA,boxB) or box_center_in(boxB,boxA) 
     #if iou>iou_thred or center_in:
     if iou>iou_thred and center_in:#该条件代表IoU大于阈值且中心点落入
     #if center_in:

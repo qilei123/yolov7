@@ -436,8 +436,9 @@ def train(hyp, opt, device, tb_writer=None):
                                                  compute_loss=compute_loss,
                                                  is_coco=is_coco,
                                                  v5_metric=opt.v5_metric,
-                                                 c_criteria=opt.c_criteria)
-
+                                                 c_criteria=opt.c_criteria,
+                                                 results_file=results_file)
+            
             # Write
             with open(results_file, 'a') as f:
                 f.write(s + '%10.4g' * 7 % results + '\n')  # append metrics, val_loss

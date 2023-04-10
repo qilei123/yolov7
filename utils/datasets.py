@@ -2429,7 +2429,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         self.datasets_count.append(len(self.img_files))
         
-        if True: #将带有十二指肠乳头的fp数据集纳入训练过程
+        if False: #将带有十二指肠乳头的fp数据集纳入训练过程
             append_fp_data_dir = "data_gc/胃部高风险病变误报图片"
             
             if not test_mode:
@@ -2445,11 +2445,13 @@ class LoadCOCOv2(LoadImagesAndLabels):
         nb = bi[-1] + 1  # number of batches
         self.batch = bi  # batch index of image
         self.n = n
+        shuffle = False
         if test_mode:
             self.indices = range(n)
         else:
             self.indices = [*range(n)]
-            random.shuffle(self.indices)
+            if shuffle:
+                random.shuffle(self.indices)
             
         debug_4_short = False
         if debug_4_short and not test_mode:
