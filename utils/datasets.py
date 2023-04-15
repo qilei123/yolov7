@@ -2429,8 +2429,16 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         self.datasets_count.append(len(self.img_files))
         
-        if False: #将带有十二指肠乳头的fp数据集纳入训练过程
+        if True: #将带有十二指肠乳头的fp数据集纳入训练过程
             append_fp_data_dir = "data_gc/胃部高风险病变误报图片"
+            
+            if not test_mode:
+                self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:1})            
+
+        self.datasets_count.append(len(self.img_files))
+        
+        if True: #将带有十二指肠乳头的fp数据集中空图片纳入训练过程
+            append_fp_data_dir = "data_gc/胃部高风险病变误报图片_empty"
             
             if not test_mode:
                 self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:1})            
@@ -2461,9 +2469,9 @@ class LoadCOCOv2(LoadImagesAndLabels):
         print('Images number:{}!'.format(n))
         print('Instances number:{}!'.format(self.instance_n))
         
-        self.images_cache_on = False
+        #self.images_cache_on = False
         
-        self.cache_vision = 3
+        self.cache_vision = 4 #3
         
         self.test_mode = test_mode
         
@@ -2474,7 +2482,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         self.img_hw0 = []
         self.img_hw = []
         
-        self.images_cache()
+        #self.images_cache()
 
         # Update labels
         include_class = []  # filter labels to include only these classes (optional)
@@ -2598,7 +2606,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
                         boxes.append(box)
                         segs.append(np.array(seg, dtype=np.float32).reshape(-1, 2))
 
-                if len(boxes)>0:
+                if len(boxes)>0 or data_path.endswith('_empty'):
                     self.instance_n+=len(boxes)
                     self.labels.append(np.array(boxes, dtype=np.float64))
                     self.shapes.append((img_width,img_height))
