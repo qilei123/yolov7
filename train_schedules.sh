@@ -1,12 +1,12 @@
-python train_org_dev.py --workers 32 \
+python train_org_dev.py --workers 64 \
     --device 0,1 \
-    --batch-size 32 \
+    --batch-size 64 \
     --data data/wj_v1_with_fp.yaml \
     --cfg cfg/training/yolov7-wj_v1_with_fp.yaml \
     --weights 'yolov7.pt' \
     --name yolov7-wj_v1_with_fp \
     --hyp data/hyp.scratch.gc.yaml \
-    --project 27_yolov7_output/WJ_V1_with_mfp7-22-2-1 \
+    --project 27_yolov7_output/WJ_V1_with_mfp7-22-2-recovery \
     --exist-ok \
     --c_criteria \
     --epochs 300

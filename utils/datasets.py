@@ -2422,14 +2422,15 @@ class LoadCOCOv2(LoadImagesAndLabels):
         
         
         if True: #将10段测试视频中挑选出来的fp纳入训练过程
-            append_fp_data_dir = "data_gc/videos_test/xiehe2111_2205_WJ_V1_with_mfp7-12_best_roifix"
+            #append_fp_data_dir = "data_gc/videos_test/xiehe2111_2205_WJ_V1_with_mfp7-12_best_roifix"
+            append_fp_data_dir = "data_gc/10_videos_fp"
             
             if not test_mode:
                 self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:1})            
 
         self.datasets_count.append(len(self.img_files))
         
-        if True: #将带有十二指肠乳头的fp数据集纳入训练过程
+        if False: #将带有十二指肠乳头的fp数据集纳入训练过程
             append_fp_data_dir = "data_gc/胃部高风险病变误报图片"
             
             if not test_mode:
@@ -2437,7 +2438,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         self.datasets_count.append(len(self.img_files))
         
-        if True: #将带有十二指肠乳头的fp数据集中空图片纳入训练过程
+        if False: #将带有十二指肠乳头的fp数据集中空图片纳入训练过程
             append_fp_data_dir = "data_gc/胃部高风险病变误报图片_empty"
             
             if not test_mode:
@@ -2471,7 +2472,11 @@ class LoadCOCOv2(LoadImagesAndLabels):
         
         #self.images_cache_on = False
         
-        self.cache_vision = 4 #3
+        #self.cache_vision = 3.0 #宽高比不发生变化
+        self.cache_vision = 3.1 #3.1编号为图像尺寸缩放时候宽高比发生变化
+        
+        self.load_image_functions = {3.0:load_image,
+                           3.1:load_image_hw}
         
         self.test_mode = test_mode
         
@@ -2482,7 +2487,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         self.img_hw0 = []
         self.img_hw = []
         
-        #self.images_cache()
+        self.images_cache()
 
         # Update labels
         include_class = []  # filter labels to include only these classes (optional)
@@ -2606,7 +2611,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
                         boxes.append(box)
                         segs.append(np.array(seg, dtype=np.float32).reshape(-1, 2))
 
-                if len(boxes)>0 or data_path.endswith('_empty'):
+                if len(boxes)>0:
                     self.instance_n+=len(boxes)
                     self.labels.append(np.array(boxes, dtype=np.float64))
                     self.shapes.append((img_width,img_height))
@@ -2636,7 +2641,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
     def images_cache(self):
         if self.images_cache_on:
-            pass
+            return
         else:
             if self.test_mode:
                 cache_file_name = "test_"+str(self.cache_vision)+".cache"
@@ -2654,7 +2659,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
                 self.img_hw = cache_datas['img_hw']              
             else:
                 for index in range(self.n):
-                    image,img_size,img_resize = load_image(self,index) 
+                    image,img_size,img_resize = self.load_image_functions[self.cache_vision](self,index) 
                     self.imgs.append(image)
                     self.img_hw0.append(img_size)
                     self.img_hw.append(img_resize)
@@ -2664,7 +2669,10 @@ class LoadCOCOv2(LoadImagesAndLabels):
                 pickle.dump(cache_datas, fptr)  # dump list data into file 
                 fptr.close()  
                 
-            self.images_cache_on = True            
+            self.images_cache_on = True
+            
+        print(cache_file_name+":"+str(len(self.imgs)))
+        
     
 class LoadEvaVideos(LoadImagesAndLabels):
     def __init__(self, path, img_size=640, batch_size=16, augment=False, hyp=None, rect=False, image_weights=False,
@@ -2865,6 +2873,24 @@ def load_image(self, index):
     else:
         return self.imgs[index], self.img_hw0[index], self.img_hw[index]  # img, hw_original, hw_resized
 
+#缩放的时候改变宽高比
+def load_image_hw(self, index):
+    # loads 1 image from dataset, returns img, original hw, resized hw
+    img = None
+    if index<len(self.imgs):
+        img = self.imgs[index]
+    if img is None:  # not cached
+        path = self.img_files[index]
+        img = cv2.imread(path)  # BGR
+        assert img is not None, 'Image Not Found ' + path
+        h0, w0 = img.shape[:2]  # orig hw
+        r = self.img_size / max(h0, w0)  # resize image to img_size
+        #if r != 1:  # always resize down, only resize up if training with augmentation
+        interp = cv2.INTER_AREA if r < 1 and not self.augment else cv2.INTER_LINEAR
+        img = cv2.resize(img, (int(self.img_size), int(self.img_size)), interpolation=interp)
+        return img, (h0, w0), img.shape[:2]  # img, hw_original, hw_resized
+    else:
+        return self.imgs[index], self.img_hw0[index], self.img_hw[index]  # img, hw_original, hw_resized
 
 def augment_hsv(img, hgain=0.5, sgain=0.5, vgain=0.5):
     r = np.random.uniform(-1, 1, 3) * [hgain, sgain, vgain] + 1  # random gains
