@@ -27,6 +27,7 @@ storage.googleapis.com
 runs/*
 data/*
 data_gc
+data_gc0
 data/images/*
 !data/*.yaml
 !data/hyps
@@ -265,3 +266,5 @@ com_crashlytics_export_strings.xml
 crashlytics.properties
 crashlytics-build.properties
 fabric.properties
+
+27_yolov7_output

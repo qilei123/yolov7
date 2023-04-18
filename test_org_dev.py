@@ -41,7 +41,9 @@ def test(data,
          trace=False,
          is_coco=False,
          v5_metric=False,
-         c_criteria = True):
+         c_criteria = True,
+         save_jdict_c = True,
+         results_file = None):
     # Initialize/load model and set device
     training = model is not None
     if training:  # called by train.py
@@ -117,6 +119,8 @@ def test(data,
     
     min_value = 0.000001
     
+    jdict_c = []
+    
     
     for batch_i, (img, targets, paths, shapes) in enumerate(tqdm(dataloader, desc=s)):
         img = img.to(device, non_blocking=True)
@@ -148,6 +152,12 @@ def test(data,
             out_c = non_max_suppression(out_c, conf_thres=0.25, iou_thres=iou_thres, labels=lb, multi_label=True)
         #这里采用宽松策略进行结果统计
         for si,predn in enumerate(out_c):
+            
+            jdict_c_record = {}
+            path = Path(paths[si])
+            jdict_c_record['image_id'] = int(path.stem) if path.stem.isnumeric() else path.stem
+            jdict_c_record['file_dir'] = paths[si]
+            
             pred = predn.clone()
             labels = targets[targets[:, 0] == si, 1:]
             
@@ -159,19 +169,42 @@ def test(data,
             tbox = xywh2xyxy(labels[:, 1:5])
             scale_coords(img[si].shape[1:], tbox, shapes[si][0], shapes[si][1])  # native-space labels
             
+            gt_poses = []
+            gt_neges = []
             for tl,tb in zip(labels.tolist(),tbox.tolist()):
-                gts+=1
+                if (tl[0] in selected_cat_ids):
+                    gts+=1
+                negative = True
                 for pp, pb in zip(pred.tolist(), box.tolist()):
                     if tl[0] == pp[5] and (tl[0] in selected_cat_ids) and condition(tb,pb,pos_iou_thres):
                         pos_gts+=1
+                        gt_poses.append(tb+[tl[0]]) #x y x y label
+                        negative = False
                         break
-                
+                if negative and (tl[0] in selected_cat_ids):
+                    gt_neges.append(tb+[tl[0]])
+                    
+            pd_poses = []
+            pd_neges = []    
             for pp, pb in zip(pred.tolist(), box.tolist()):
-                predicts+=1
+                if (pp[5] in selected_cat_ids):
+                    predicts+=1
+                negative = True
                 for tl,tb in zip(labels.tolist(),tbox.tolist()):
                     if pp[5] == tl[0] and (pp[5] in selected_cat_ids) and condition(pb,tb,pos_iou_thres):
                         pos_predicts+=1
+                        pd_poses.append(pb+pp[4:6]) #x y x y score label
+                        negative = False
                         break
+                if negative and (pp[5] in selected_cat_ids):
+                    pd_neges.append(pb+pp[4:6]) 
+                    
+            if save_jdict_c:
+                jdict_c_record['gt_poses'] = gt_poses
+                jdict_c_record['gt_neges'] = gt_neges
+                jdict_c_record['pd_poses'] = pd_poses
+                jdict_c_record['pd_neges'] = pd_neges
+                jdict_c.append(jdict_c_record)
 
         # Statistics per image
         for si, pred in enumerate(out):
@@ -269,8 +302,6 @@ def test(data,
     c_r = pos_gts/(gts+min_value)
     c_p = pos_predicts/(predicts+min_value)
     
-    print("c_recall:{0:.4f}\nc_precision:{1:.4f}".format(c_r,c_p))
-    
     # Compute statistics
     stats = [np.concatenate(x, 0) for x in zip(*stats)]  # to numpy
     if len(stats) and stats[0].any():
@@ -280,11 +311,7 @@ def test(data,
         nt = np.bincount(stats[3].astype(np.int64), minlength=nc)  # number of targets per class
     else:
         nt = torch.zeros(1)
-
-    if c_criteria:
-        mp = c_p
-        mr = c_r
-    
+        
     # Print results
     pf = '%20s' + '%12i' * 2 + '%12.3g' * 4  # print format
     print(pf % ('all', seen, nt.sum(), mp, mr, map50, map))
@@ -293,6 +320,21 @@ def test(data,
     if (verbose or (nc < 50 and not training)) and nc > 1 and len(stats):
         for i, c in enumerate(ap_class):
             print(pf % (names[c], seen, nt[c], p[i], r[i], ap50[i], ap[i]))
+
+    if c_criteria:
+        c_criteria_record = "\tc_recall:{0:.4f}\tc_precision:{1:.4f}\tpos_gts:{2}\tgts:{3}\tpos_predicts:{4}\tpredicts:{5}".format(c_r,c_p,pos_gts,gts,pos_predicts,predicts)
+        print(c_criteria_record)
+        #mp = c_p
+        #mr = c_r
+        if results_file:
+            with open(results_file, 'a') as f:
+                f.write(c_criteria_record+ '\n')  # append metrics, val_loss
+        
+        if save_jdict_c and len(jdict_c) and save_json:
+            w = Path(weights[0] if isinstance(weights, list) else weights).stem if weights is not None else ''  # weights
+            cpred_json = str(save_dir / f"{w}_c_criteria.json")
+            with open(cpred_json, 'w') as f:
+                json.dump(jdict_c, f,ensure_ascii=False)       #关闭ascii输出，防止中文乱码存入json文件
 
     # Print speeds
     t = tuple(x / seen * 1E3 for x in (t0, t1, t0 + t1)) + (imgsz, imgsz, batch_size)  # tuple

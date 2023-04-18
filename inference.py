@@ -9,6 +9,9 @@ from utils.datasets import letterbox
 from utils.general import check_img_size, non_max_suppression, scale_coords
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device
+import glob
+import os
+import json
 
 # This class is to predict diseases on gastro images.
 
@@ -118,7 +121,7 @@ class GastroDiseaseDetect():
 
     #private for result formate
     def __formate_result(self,det_result): #transfer predict results into required formate
-        formate_result = dict()
+        formate_result = []
         obj_count = 0
         
         # Get names and colors
@@ -132,29 +135,136 @@ class GastroDiseaseDetect():
 
                     label = names[int(cls)]
 
-                    formate_result[obj_count] = {'score': conf,
+                    formate_result.append({'score': conf,
                                                  'pt': xyxy,
                                                  "class_id": cls,
-                                                 'type': label}
+                                                 'type': label,
+                                                 'obj_count':obj_count,})
 
                     obj_count += 1
 
         return formate_result
 
+def bubble_sort(det_result):
+    for i in range(len(det_result)-1):
+        for j in range(i+1,len(det_result)):
+            if det_result[i]['score'] > det_result[j]['score']:
+                temp = det_result[i]
+                det_result[i] = det_result[j]
+                det_result[j] = temp
+
+    det_result.reverse()
+    return det_result
+
+def recovery_dataset():
+    
+    temp_annos_json = json.load(open("data_gc/胃部高风险病变误报图片_empty/annotations/temp_crop_instances_default.json", "r"))
+    
+    images =[]
+    temp_img = temp_annos_json['images'][0]
+    img_id = 1
+    
+    if 'roi' in temp_img:
+        del temp_img['roi']
+    
+    annotations = []
+    temp_ann = temp_annos_json['annotations'][0]
+    ann_id = 1
+    
+    data_dir = "data_gc/胃部高风险病变误报图片_empty"
+    
+    gastroDiseaseDetector = GastroDiseaseDetect(agnostic_nms = True)
+    
+    gastroDiseaseDetector.ini_model(model_dir="out/WJ_V1_with_mfp7-22-2_retrain/yolov7-wj_v1_with_fp/weights/last.pt")
+    
+    image_dirs=[]#= glob.glob(data_dir+"/temp_recovery_images/*.jpg") #获得所有图像的路径，可以替换
+    
+    image_dir_json = json.load(open("data_gc/胃部高风险病变误报图片_empty/annotations/crop_instances_default_empty.json", "r"))
+    
+    for img in image_dir_json['images']:
+        image_dirs.append(os.path.join(data_dir,'crop_images',img['file_name']))
+    
+    #vis_dir = data_dir+"/temp_recovery_images_vis"
+    
+    #os.makedirs(vis_dir,exist_ok=True)
+    
+    dyn_conf = 0.2
+    dyn_nms_iou = 0.2
+    
+    for image_dir in image_dirs:
+    
+        image = cv2.imread(image_dir)
+        
+        temp_img['id'] = img_id
+        temp_img['file_name'] = image_dir.replace(os.path.join(data_dir,'crop_images/'),'')#os.path.basename(image_dir)
+        temp_img['height'] = image.shape[0]
+        temp_img['width'] = image.shape[1]
+        
+        images.append(temp_img.copy())
+        
+        result = gastroDiseaseDetector.predict(image,formate_result=True,dyn_conf=dyn_conf,dyn_nms_iou=dyn_nms_iou)
+        
+        if len(result):
+
+            result = bubble_sort(result)
+            max_fp = 2 if len(result)>2 else len(result)
+            
+            for det_id in range(max_fp):
+                temp_ann['image_id'] = img_id
+                temp_ann['id'] = ann_id
+                temp_ann['bbox'] = [int(result[det_id]['pt'][0]),int(result[det_id]['pt'][1]),
+                                    int(result[det_id]['pt'][2]-result[det_id]['pt'][0]),int(result[det_id]['pt'][3]-result[det_id]['pt'][1])]
+                
+                annotations.append(temp_ann.copy())
+                ann_id+=1
+        else:
+            temp_ann['image_id'] = img_id
+            temp_ann['id'] = ann_id
+            temp_ann['bbox'] = [1,1,
+                                int(image.shape[1]),int(image.shape[0])]
+            
+            annotations.append(temp_ann.copy())
+            ann_id+=1
+            
+        img_id += 1
+        #result = gastroDiseaseDetector(image,False)
+        #gastroDiseaseDetector.show_result_on_image(image,result,os.path.join(vis_dir,os.path.basename(image_dir)))    
+    temp_annos_json['images'] = images
+    temp_annos_json['annotations'] = annotations
+    
+    with open(os.path.join(data_dir,'annotations/crop_instances_default.json'), 'w') as f:
+        json.dump(temp_annos_json, f,ensure_ascii=False)  
+    
 #use case
+def use_case():
+    data_dir = "data_gc/10_videos_fp"
+    
+    gastroDiseaseDetector = GastroDiseaseDetect(agnostic_nms = True)
+    
+    gastroDiseaseDetector.ini_model(model_dir="out/WJ_V1_with_mfp7-22-2_retrain/yolov7-wj_v1_with_fp/weights/last.pt")
+    
+    image_dirs = glob.glob(data_dir+"/temp_recovery_images/*.jpg")
+    
+    vis_dir = data_dir+"/temp_recovery_images_vis"
+    
+    os.makedirs(vis_dir,exist_ok=True)
+    
+    dyn_conf = 0.2
+    dyn_nms_iou = 0.2
+    
+    for image_dir in image_dirs:
+    
+        image = cv2.imread(image_dir)
+        
+        result = gastroDiseaseDetector.predict(image,formate_result=False,dyn_conf=dyn_conf,dyn_nms_iou=dyn_nms_iou)
+        #print(result)
+        # or 
+        #result = gastroDiseaseDetector(image,False)
+        #print(result)
+
+        gastroDiseaseDetector.show_result_on_image(image,result,os.path.join(vis_dir,os.path.basename(image_dir)))    
+
 if __name__ == '__main__':
+    recovery_dataset()
 
-    gastroDiseaseDetector = GastroDiseaseDetect()
-    
-    gastroDiseaseDetector.ini_model(model_dir="/data/qilei/DATASETS/WJ_V1/yolov7_single_cls_2/yolov7x-wj_v1/weights/best.pt")
-    
-    image = cv2.imread("/data/qilei/DATASETS/WJ_V1/images/3/IMG_01.00279277.0009.09195700180.jpg")
-    
-    result = gastroDiseaseDetector.predict(image)
-    print(result)
-    # or 
-    result = gastroDiseaseDetector(image,False)
-    print(result)
-
-    gastroDiseaseDetector.show_result_on_image(image,result,'test.jpg')
 
