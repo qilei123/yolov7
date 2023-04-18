@@ -55,7 +55,7 @@ def is_in_periods(frame_id,positive_periods):
 
 def process_videos():
 
-    visualize = False
+    visualize = True
     gpu_id = 0
     conf = 0.3
     
@@ -63,7 +63,7 @@ def process_videos():
 
     #gastro_disease_detector.ini_model(model_dir="single_category.pt")
     
-    model_name ='WJ_V1_with_mfp7-22-2_v4-0'
+    model_name ='WJ_V1_with_mfp7-22-2_retrain'
     #model_name = 'WJ_V1_with_mfp7x-22-2_ppsa_v2'
     print(model_name)
     
@@ -75,8 +75,9 @@ def process_videos():
 
     #videos_dir = '/data3/xiaolong_liang/data/videos_2022/202201_r06/gastroscopy/'
     #videos_dir = '/data1/qilei_chen/DATA/gastro_cancer_tests/xiehe2111_2205'
-    videos_dir = '/home/ycao/DATASETS/gastro_cancer/videos_test/xiehe2111_2205'
+    #videos_dir = '/home/ycao/DATASETS/gastro_cancer/videos_test/xiehe2111_2205'
     #videos_dir = '/home/ycao/DATASETS/gastro_cancer/videos_test/fujis'
+    videos_dir = 'data_gc/videos_test/十二指肠乳头视频片段'
 
     #report_images_dir = '/data2/qilei_chen/wj_fp_images1'
     report_images_dir = videos_dir+'_'+model_name+'_'+model_pt_name+'_roifix_'+str(conf)
