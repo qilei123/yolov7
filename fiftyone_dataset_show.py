@@ -30,9 +30,9 @@ def get_db2(db_set = 'train'):
     return append_fp_data_dir,os.path.join(append_fp_data_dir,fp_ann_file)
 
 def get_db3():
-    append_fp_data_dir = "/home/ycao/DEVELOPMENTS/yolov7/data_gc/xiehe_far_1/crop_images"
+    append_fp_data_dir = "data_gc/xiehe_far_1/crop_images"
     
-    fp_ann_file = '/home/ycao/DEVELOPMENTS/yolov7/data_gc/xiehe_far_1/annotations/crop_instances_default.json'
+    fp_ann_file = 'data_gc/xiehe_far_1/annotations/crop_instances_default.json'
     
     return append_fp_data_dir,fp_ann_file
 

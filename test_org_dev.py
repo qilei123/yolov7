@@ -324,8 +324,8 @@ def test(data,
     if c_criteria:
         c_criteria_record = "\tc_recall:{0:.4f}\tc_precision:{1:.4f}\tpos_gts:{2}\tgts:{3}\tpos_predicts:{4}\tpredicts:{5}".format(c_r,c_p,pos_gts,gts,pos_predicts,predicts)
         print(c_criteria_record)
-        #mp = c_p
-        #mr = c_r
+        mp = c_p
+        mr = c_r
         if results_file:
             with open(results_file, 'a') as f:
                 f.write(c_criteria_record+ '\n')  # append metrics, val_loss

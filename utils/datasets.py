@@ -718,7 +718,7 @@ class LoadCOCO(LoadImagesAndLabels):
         # dictory example:
         # annotations: path = data_root/annotations/train.json; here path is the dir for annotation file
         # images: data_root/images/*
-        self.path27 = '/home/ycao/DEVELOPMENTS/yolov7/data_gc/gastro_cancer_v66'
+        self.path27 = 'data_gc/gastro_cancer_v66'
         path = os.path.basename(path).replace("_", "/")
         coco = COCO(self.check_anns_dir(path)) 
         
@@ -1724,7 +1724,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         # dictory example:
         # annotations: path = data_root/annotations/train.json; here path is the dir for annotation file
         # images: data_root/images/*
-        self.path27 = '/home/ycao/DEVELOPMENTS/yolov7/data_gc/gastro_cancer_v66'
+        self.path27 = 'data_gc/gastro_cancer_v66'
         
         self.datasets_count = []#按顺序记录每个数据集的个数
         
@@ -1848,8 +1848,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
             
         times_tp = 1
         if True:#协和2015-2021年数据+zz_allothers
-            data_list= ['/home/ycao/DEVELOPMENTS/yolov7/data_gc/gastro_cancer_v66/annotations/_data2_zzhang_annotation_erosiveulcer_fine_trainfp0927.json',
-                        '/home/ycao/DEVELOPMENTS/yolov7/data_gc/gastro_cancer_v66/annotations/_data2_zzhang_annotation_erosiveulcer_fine_test0928.json']
+            data_list= ['data_gc/gastro_cancer_v66/annotations/_data2_zzhang_annotation_erosiveulcer_fine_trainfp0927.json',
+                        'data_gc/gastro_cancer_v66/annotations/_data2_zzhang_annotation_erosiveulcer_fine_test0928.json']
             if test_mode:
                 self.load_standard_gastro(data_list[1],select_cats_id=[3],cat_id_map={3:0})
             else:
@@ -2430,7 +2430,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         self.datasets_count.append(len(self.img_files))
         
-        if False: #将带有十二指肠乳头的fp数据集纳入训练过程
+        if True: #将带有十二指肠乳头的fp数据集纳入训练过程
             append_fp_data_dir = "data_gc/胃部高风险病变误报图片"
             
             if not test_mode:
@@ -2473,10 +2473,12 @@ class LoadCOCOv2(LoadImagesAndLabels):
         #self.images_cache_on = False
         
         #self.cache_vision = 3.0 #宽高比不发生变化
-        self.cache_vision = 3.1 #3.1编号为图像尺寸缩放时候宽高比发生变化
+        #self.cache_vision = 3.1 #3.1编号为图像尺寸缩放时候宽高比发生变化
+        self.cache_vision = 4.0 #宽高比不发生变化，此cache纳入了fp_rt
         
         self.load_image_functions = {3.0:load_image,
-                           3.1:load_image_hw}
+                           3.1:load_image_hw,
+                           4.0:load_image,}
         
         self.test_mode = test_mode
         
@@ -2695,13 +2697,13 @@ class LoadEvaVideos(LoadImagesAndLabels):
         # dictory example:
         # annotations: path = data_root/annotations/train.json; here path is the dir for annotation file
         # images: data_root/images/*
-        #self.path27 = '/home/ycao/DEVELOPMENTS/yolov7/data_gc/gastro_cancer_v66'
+        #self.path27 = 'data_gc/gastro_cancer_v66'
         
         self.datasets_count = []#按顺序记录每个数据集的个数
         
         path = os.path.basename(path).replace("_", "/")
         
-        data_root = "/home/ycao/DEVELOPMENTS/yolov7/data_gc/videos_test"
+        data_root = "data_gc/videos_test"
         images_root = os.path.join(data_root , "xiehe2111_2205")
         self.img_files =  []
         self.labels = [] #(img,cat,x,y,w,h)
