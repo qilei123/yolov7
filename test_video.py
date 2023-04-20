@@ -55,7 +55,7 @@ def is_in_periods(frame_id,positive_periods):
 
 def process_videos():
 
-    visualize = True
+    visualize = False
     gpu_id = 0
     conf = 0.3
     
@@ -63,13 +63,13 @@ def process_videos():
 
     #gastro_disease_detector.ini_model(model_dir="single_category.pt")
     
-    model_name ='WJ_V1_with_mfp7-22-2_retrain'
+    model_name ='WJ_V1_with_mfp7-22-2-0'
     #model_name = 'WJ_V1_with_mfp7x-22-2_ppsa_v2'
     print(model_name)
     
-    model_pt_name = 'best'
+    model_pt_name = 'best_f2'
     
-    model_dir = 'out/'+model_name+'/yolov7-wj_v1_with_fp/weights/'+model_pt_name+'.pt'
+    model_dir = '27_yolov7_output/'+model_name+'/yolov7-wj_v1_with_fp/weights/'+model_pt_name+'.pt'
     
     gastro_disease_detector.ini_model(model_dir=model_dir)
 
@@ -128,7 +128,8 @@ def process_videos():
                                         cv2.VideoWriter_fourcc('X', 'V', 'I', 'D'), fps, size)
         
         #os.makedirs(os.path.join(report_images_dir,os.path.basename(video_dir)+'_fp','org_images'), exist_ok=True)
-        os.makedirs(os.path.join(report_images_dir,os.path.basename(video_dir)+'_fp','result_images'), exist_ok=True)
+        if visualize:
+            os.makedirs(os.path.join(report_images_dir,os.path.basename(video_dir)+'_fp','result_images'), exist_ok=True)
 
         frame_id_report_log = open(os.path.join(report_images_dir,os.path.basename(video_dir)+'.txt'),'w')
 
