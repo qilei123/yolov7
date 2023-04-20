@@ -2228,9 +2228,9 @@ class LoadCOCOv2(LoadImagesAndLabels):
         #xl65versions = ['org','m111:774','m114:156','m117:405','m123:157']
         xl65v = 'm123'
         prob = 0.3
-        train_both = False
+        train_both = True
         import random
-        if False: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練過程中
+        if True: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練過程中
             append_fp_data_dir = "/data2/qilei_chen/wj_fp_images1"
 
             select_cats_id = [1,]
@@ -2438,7 +2438,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         self.datasets_count.append(len(self.img_files))
         
-        if True: #将far17的50张图片阳性样本纳入
+        if False: #将far17的50张图片阳性样本纳入
             append_fp_data_dir = "data_gc/湘雅_远景_2021_2022_低级别_20230110"
             
             if not test_mode:
@@ -2462,7 +2462,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         nb = bi[-1] + 1  # number of batches
         self.batch = bi  # batch index of image
         self.n = n
-        shuffle = False
+        shuffle = True
         if test_mode:
             self.indices = range(n)
         else:
@@ -2501,6 +2501,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         self.img_hw = []
         
         self.images_cache()
+        #self.images_cache_and_save()
 
         # Update labels
         include_class = []  # filter labels to include only these classes (optional)
@@ -2656,6 +2657,22 @@ class LoadCOCOv2(LoadImagesAndLabels):
         if self.images_cache_on:
             return
         else:
+
+            for index in range(self.n):
+                image,img_size,img_resize = self.load_image_functions[self.cache_vision](self,index) 
+                self.imgs.append(image)
+                self.img_hw0.append(img_size)
+                self.img_hw.append(img_resize)
+                
+            self.images_cache_on = True
+        if self.test_mode:    
+            print("test_cache:"+str(len(self.imgs)))
+        else:
+            print("train_cache:"+str(len(self.imgs)))
+    def images_cache_and_save(self):
+        if self.images_cache_on:
+            return
+        else:
             if self.test_mode:
                 cache_file_name = "test_"+str(self.cache_vision)+".cache"
             else:
@@ -2684,8 +2701,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
                 
             self.images_cache_on = True
             
-        print(cache_file_name+":"+str(len(self.imgs)))
-        
+        print(cache_file_name+":"+str(len(self.imgs)))        
     
 class LoadEvaVideos(LoadImagesAndLabels):
     def __init__(self, path, img_size=640, batch_size=16, augment=False, hyp=None, rect=False, image_weights=False,
