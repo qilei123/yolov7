@@ -2438,6 +2438,14 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         self.datasets_count.append(len(self.img_files))
         
+        if True: #将far17的50张图片阳性样本纳入
+            append_fp_data_dir = "data_gc/湘雅_远景_2021_2022_低级别_20230110"
+            
+            if not test_mode:
+                self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,2,3],cat_id_map={1:0,2:1,3:1})            
+
+        self.datasets_count.append(len(self.img_files))        
+        
         if False: #将带有十二指肠乳头的fp数据集中空图片纳入训练过程
             append_fp_data_dir = "data_gc/胃部高风险病变误报图片_empty"
             
@@ -2474,11 +2482,14 @@ class LoadCOCOv2(LoadImagesAndLabels):
         
         #self.cache_vision = 3.0 #宽高比不发生变化
         #self.cache_vision = 3.1 #3.1编号为图像尺寸缩放时候宽高比发生变化
-        self.cache_vision = 4.0 #宽高比不发生变化，此cache纳入了fp_rt
+        #self.cache_vision = 4.0 #宽高比不发生变化，此cache纳入了fp_rt
+        
+        self.cache_vision = 4.1 #宽高比不发生变化，此cache在4.0基础上纳入far17的50张图片阳性样本
         
         self.load_image_functions = {3.0:load_image,
                            3.1:load_image_hw,
-                           4.0:load_image,}
+                           4.0:load_image,
+                           4.1:load_image,}
         
         self.test_mode = test_mode
         
