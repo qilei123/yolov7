@@ -2462,7 +2462,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         nb = bi[-1] + 1  # number of batches
         self.batch = bi  # batch index of image
         self.n = n
-        shuffle = True
+        shuffle = False
         if test_mode:
             self.indices = range(n)
         else:
