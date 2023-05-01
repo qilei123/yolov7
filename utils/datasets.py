@@ -2228,7 +2228,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         #xl65versions = ['org','m111:774','m114:156','m117:405','m123:157']
         xl65v = 'm123'
         prob = 0.3
-        train_both = True
+        train_both = False
         import random
         if True: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練過程中
             append_fp_data_dir = "/data2/qilei_chen/wj_fp_images1"
@@ -2430,19 +2430,24 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         self.datasets_count.append(len(self.img_files))
         
+        times_12zc = 10
+        cat_id = 2
         if True: #将带有十二指肠乳头的fp数据集纳入训练过程
             append_fp_data_dir = "data_gc/胃部高风险病变误报图片"
-            
             if not test_mode:
-                self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:1})            
+                for i in range(times_12zc):
+                    self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:cat_id}) 
+          
 
         self.datasets_count.append(len(self.img_files))
         
-        if False: #将far17的50张图片阳性样本纳入
+        repeat_time_far17 = 4
+        if True: #将far17的50张图片阳性样本纳入
             append_fp_data_dir = "data_gc/湘雅_远景_2021_2022_低级别_20230110"
             
             if not test_mode:
-                self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,2,3],cat_id_map={1:0,2:1,3:1})            
+                for rt in range(repeat_time_far17):
+                    self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,2,3],cat_id_map={1:0,2:1,3:1})            
 
         self.datasets_count.append(len(self.img_files))        
         
