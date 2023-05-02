@@ -2431,7 +2431,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         self.datasets_count.append(len(self.img_files))
         
         times_12zc = 10
-        cat_id = 2
+        cat_id = 1
         if True: #将带有十二指肠乳头的fp数据集纳入训练过程
             append_fp_data_dir = "data_gc/胃部高风险病变误报图片"
             if not test_mode:
@@ -2451,7 +2451,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         self.datasets_count.append(len(self.img_files))        
         
-        if False: #将带有十二指肠乳头的fp数据集中空图片纳入训练过程
+        if True: #将带有十二指肠乳头的fp数据集中空图片纳入训练过程
             append_fp_data_dir = "data_gc/胃部高风险病变误报图片_empty"
             
             if not test_mode:
