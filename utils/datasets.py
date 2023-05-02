@@ -718,7 +718,7 @@ class LoadCOCO(LoadImagesAndLabels):
         # dictory example:
         # annotations: path = data_root/annotations/train.json; here path is the dir for annotation file
         # images: data_root/images/*
-        self.path27 = '/home/ycao/DEVELOPMENTS/yolov7/data_gc/gastro_cancer_v66'
+        self.path27 = 'data_gc/gastro_cancer_v66'
         path = os.path.basename(path).replace("_", "/")
         coco = COCO(self.check_anns_dir(path)) 
         
@@ -1390,8 +1390,8 @@ class LoadCOCO(LoadImagesAndLabels):
                         
         with_others = True        
         if True: #将协和39段视频中挑选的两批远景图片数据集全部纳入训练过程
-            dataset_dirs = ['/home/ycao/DATASETS/gastro_cancer/xiehe_far_1',
-                            '/home/ycao/DATASETS/gastro_cancer/xiehe_far_2']
+            dataset_dirs = ['data_gc/xiehe_far_1',
+                            'data_gc/xiehe_far_2']
             if with_others:
                 if test_mode:
                     pass
@@ -1738,7 +1738,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         # dictory example:
         # annotations: path = data_root/annotations/train.json; here path is the dir for annotation file
         # images: data_root/images/*
-        self.path27 = '/home/ycao/DEVELOPMENTS/yolov7/data_gc/gastro_cancer_v66'
+        self.path27 = 'data_gc/gastro_cancer_v66'
         
         self.datasets_count = []#按顺序记录每个数据集的个数
         
@@ -1862,8 +1862,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
             
         times_tp = 1
         if True:#协和2015-2021年数据+zz_allothers
-            data_list= ['/home/ycao/DEVELOPMENTS/yolov7/data_gc/gastro_cancer_v66/annotations/_data2_zzhang_annotation_erosiveulcer_fine_trainfp0927.json',
-                        '/home/ycao/DEVELOPMENTS/yolov7/data_gc/gastro_cancer_v66/annotations/_data2_zzhang_annotation_erosiveulcer_fine_test0928.json']
+            data_list= ['data_gc/gastro_cancer_v66/annotations/_data2_zzhang_annotation_erosiveulcer_fine_trainfp0927.json',
+                        'data_gc/gastro_cancer_v66/annotations/_data2_zzhang_annotation_erosiveulcer_fine_test0928.json']
             if test_mode:
                 self.load_standard_gastro(data_list[1],select_cats_id=[3],cat_id_map={3:0})
             else:
@@ -2382,11 +2382,11 @@ class LoadCOCOv2(LoadImagesAndLabels):
         times_tp = 1        
         if True: #将协和39段视频中挑选的两批远景图片数据集全部纳入训练过程
             if far_vision =='fars_118':
-                dataset_dirs = ['/home/ycao/DATASETS/gastro_cancer/fars_118/xiehe_far_1',
-                                '/home/ycao/DATASETS/gastro_cancer/fars_118/xiehe_far_2']                
+                dataset_dirs = ['data_gc/fars_118/xiehe_far_1',
+                                'data_gc/fars_118/xiehe_far_2']                
             else:
-                dataset_dirs = ['/home/ycao/DATASETS/gastro_cancer/xiehe_far_1',
-                                '/home/ycao/DATASETS/gastro_cancer/xiehe_far_2']
+                dataset_dirs = ['data_gc/xiehe_far_1',
+                                'data_gc/xiehe_far_2']
             if with_others:
                 if test_mode:
                     pass
@@ -2406,11 +2406,11 @@ class LoadCOCOv2(LoadImagesAndLabels):
         times_tp = 1        
         if True: #将湘雅2021-2022视频中挑选的两批远景图片数据集全部纳入训练过程
             if far_vision == 'fars_118':
-                dataset_dirs = ['/home/ycao/DATASETS/gastro_cancer/fars_118/xiangya_far_2021',
-                                '/home/ycao/DATASETS/gastro_cancer/fars_118/xiangya_far_2022']
+                dataset_dirs = ['data_gc/fars_118/xiangya_far_2021',
+                                'data_gc/fars_118/xiangya_far_2022']
             else:
-                dataset_dirs = ['/home/ycao/DATASETS/gastro_cancer/xiangya_far_2021',
-                                '/home/ycao/DATASETS/gastro_cancer/xiangya_far_2022']
+                dataset_dirs = ['data_gc/xiangya_far_2021',
+                                'data_gc/xiangya_far_2022']
             if with_others:
                 if test_mode:
                     pass
@@ -2427,7 +2427,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         self.datasets_count.append(len(self.img_files))
         
         if True: #将xiangya_202209_202211纳入测试集合,这里的图片出自三段测试视频
-            dataset_dirs = ['/home/ycao/DATASETS/gastro_cancer/xiangya_202209_202211','']
+            dataset_dirs = ['data_gc/xiangya_202209_202211','']
             if test_mode:
                 self.load_standard_gastro(dataset_dirs[0],select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
                 
@@ -2672,7 +2672,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
                 self.img_hw0 =cache_datas['img_hw0']
                 self.img_hw = cache_datas['img_hw']              
             else:
-                for index in range(self.n):
+                for index in tqdm(range(self.n)):
                     image,img_size,img_resize = self.load_image_functions[self.cache_vision](self,index) 
                     self.imgs.append(image)
                     self.img_hw0.append(img_size)
@@ -2709,13 +2709,13 @@ class LoadEvaVideos(LoadImagesAndLabels):
         # dictory example:
         # annotations: path = data_root/annotations/train.json; here path is the dir for annotation file
         # images: data_root/images/*
-        #self.path27 = '/home/ycao/DEVELOPMENTS/yolov7/data_gc/gastro_cancer_v66'
+        #self.path27 = 'data_gc/gastro_cancer_v66'
         
         self.datasets_count = []#按顺序记录每个数据集的个数
         
         path = os.path.basename(path).replace("_", "/")
         
-        data_root = "/home/ycao/DEVELOPMENTS/yolov7/data_gc/videos_test"
+        data_root = "data_gc/videos_test"
         images_root = os.path.join(data_root , "xiehe2111_2205")
         self.img_files =  []
         self.labels = [] #(img,cat,x,y,w,h)
