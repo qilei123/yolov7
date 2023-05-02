@@ -86,6 +86,6 @@ def generate_empty_fps():
         
 if __name__ == "__main__":
     #visualize(visual_cats={'gt_neges':['pd_poses','pd_neges'],'pd_neges':['gt_poses','gt_neges']})
-    #tally_recall_precision()
-    generate_empty_fps()
+    tally_recall_precision()
+    #generate_empty_fps()
     pass

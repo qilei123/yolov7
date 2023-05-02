@@ -1,0 +1,10 @@
+
+train: data_gc/gastro_cancer_v66/annotations/_data2_zzhang_annotation_erosiveulcer_fine_trainfp0927.json 
+val: data_gc/gastro_cancer_v66/annotations/_data2_zzhang_annotation_erosiveulcer_fine_test0928.json 
+test: data_gc/gastro_cancer_v66/annotations/_data2_zzhang_annotation_erosiveulcer_fine_test0928.json
+
+# number of classes
+nc: 3
+
+# class names
+names: [ 'cancer','others','dp']  #dp means duodenal papilla

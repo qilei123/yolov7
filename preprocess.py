@@ -129,7 +129,7 @@ def crop_wg(anno_dir = "/data2/qilei_chen/DATA/2021_2022gastro_cancers/2022_1/")
     fix_roi1 = [663,33,1890,1042]
     #fix_roi2 = [570,13,1600,956]
     #fix_roi3 = [173,45,688,530]
-    fix_roi1 = None
+    #fix_roi1 = None
     ab_count=0
     for ImgId in coco.getImgIds():    
         img = coco.loadImgs([ImgId])[0]
@@ -222,9 +222,10 @@ if __name__=="__main__":
     #crop_wg(anno_dir="/data3/qilei_chen/DATA/gastro8-12/协和21-11月~2022-5癌变已标注/协和2021-11月_2022-5癌变_20221121")
     #crop_wg(anno_dir="/data3/qilei_chen/DATA/gastro8-12/协和2022_第一批胃早癌视频裁图已标注/20221115/癌变2022_20221115")
     #crop_wg(anno_dir="/data3/qilei_chen/DATA/gastro8-12/协和2022_第二批胃早癌视频裁图已标注/协和_2022_癌变_2_20221117")
-    #crop_wg(anno_dir='/home/ycao/DATASETS/gastro_cancer/xiehe_far_1')
-    #crop_wg(anno_dir='/home/ycao/DATASETS/gastro_cancer/xiehe_far_2')
-    #crop_wg(anno_dir='/home/ycao/DATASETS/gastro_cancer/xiangya_far_2021')
-    #crop_wg(anno_dir='/home/ycao/DATASETS/gastro_cancer/xiangya_far_2022')
-    crop_wg(anno_dir='/home/ycao/DATASETS/gastro_cancer/xiangya_202209_202211')
+    #crop_wg(anno_dir='data_gc/xiehe_far_1')
+    #crop_wg(anno_dir='data_gc/xiehe_far_2')
+    #crop_wg(anno_dir='data_gc/xiangya_far_2021')
+    #crop_wg(anno_dir='data_gc/xiangya_far_2022')
+    #crop_wg(anno_dir='data_gc/xiangya_202209_202211')
+    crop_wg(anno_dir="data_gc/湘雅_远景_2021_2022_低级别_20230110")
     
