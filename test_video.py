@@ -3,6 +3,8 @@ import time
 import glob
 import os
 import json
+import warnings
+warnings.filterwarnings('ignore')
 
 import pycocotools.coco as COCO
 
@@ -53,10 +55,12 @@ def is_in_periods(frame_id,positive_periods):
         
     return False
 
-def process_videos():
+def process_videos(_model_name='',_videos_dir='',_gpu_id = -1):
 
     visualize = False
-    gpu_id = 0
+    gpu_id = 3
+    if _gpu_id>0:
+        gpu_id = _gpu_id
     conf = 0.3
     
     gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=gpu_id,conf = conf)
@@ -64,10 +68,12 @@ def process_videos():
     #gastro_disease_detector.ini_model(model_dir="single_category.pt")
     
     model_name ='WJ_V1_with_mfp7-22-2-0'
+    if _model_name != '':
+        model_name = _model_name
     #model_name = 'WJ_V1_with_mfp7x-22-2_ppsa_v2'
     print(model_name)
     
-    model_pt_name = 'best_f2'
+    model_pt_name = 'best'
     
     model_dir = '27_yolov7_output/'+model_name+'/yolov7-wj_v1_with_fp/weights/'+model_pt_name+'.pt'
     
@@ -77,7 +83,10 @@ def process_videos():
     #videos_dir = '/data1/qilei_chen/DATA/gastro_cancer_tests/xiehe2111_2205'
     #videos_dir = '/home/ycao/DATASETS/gastro_cancer/videos_test/xiehe2111_2205'
     #videos_dir = '/home/ycao/DATASETS/gastro_cancer/videos_test/fujis'
-    videos_dir = 'data_gc/videos_test/十二指肠乳头视频片段'
+    #videos_dir = 'data_gc/videos_test/十二指肠乳头视频片段'
+    videos_dir = "data_gc/videos_test/xiehe2111_2205"
+    if _videos_dir != "":
+        videos_dir = _videos_dir
 
     #report_images_dir = '/data2/qilei_chen/wj_fp_images1'
     report_images_dir = videos_dir+'_'+model_name+'_'+model_pt_name+'_roifix_'+str(conf)
@@ -1013,9 +1022,21 @@ def generate_eval_on_videos():
             frame_label = frame_labels_file.readline()
             
     anno_constructor.save_annotation(os.path.join(dataset_dir,"annotations","crop_instances_default.json"))
+
+def process_videos_trains():
+    model_names = ['WJ_V1_with_mfp7-22-2_retrain_recovery',
+                   'WJ_V1_with_mfp7-22-2_retrain_recovery1',
+                   'WJ_V1_with_mfp7-22-2-0','WJ_V1_with_mfp7-22-2-1','WJ_V1_with_mfp7-22-2-2',
+                   'WJ_V1_with_mfp7-22-2-3','WJ_V1_with_mfp7-22-2-4','WJ_V1_with_mfp7-22-2-5',
+                   'WJ_V1_with_mfp7-22-2-recovery','WJ_V1_with_mfp7-22-2-recurrent']
+    videos_dirs = ['data_gc/videos_test/xiehe2111_2205','data_gc/videos_test/十二指肠乳头视频片段']
+    
+    for videos_dir in videos_dirs:
+        for model_name in model_names:
+            process_videos(_model_name=model_name,_videos_dir=videos_dir)
     
 if __name__ == '__main__':
-    process_videos()
+    #process_videos()
     #process_videos_fp()
     #extract_frames()
     #reprocess_images()
@@ -1028,4 +1049,7 @@ if __name__ == '__main__':
     #generate_fp_coco2()
     #generate_fp_coco3()
     #generate_eval_on_videos()
+    
+    process_videos_trains()
+    
     pass
