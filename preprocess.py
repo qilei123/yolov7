@@ -112,24 +112,25 @@ def CropImg(image,roi=None):
     else:
         return image[roi[1]:roi[3],roi[0]:roi[2],:]
 
-def crop_wg(anno_dir = "/data2/qilei_chen/DATA/2021_2022gastro_cancers/2022_1/"):
+def crop_wg(anno_dir = "/data2/qilei_chen/DATA/2021_2022gastro_cancers/2022_1/",_items_map = None):
     
     temp_annotation = json.load(open(os.path.join(anno_dir,'annotations/instances_default.json'),errors='ignore'))
 
     coco = COCO(os.path.join(anno_dir,'annotations/instances_default.json'))
     
     items_map = {"癌变":"cancer","糜烂":"erosive","溃疡":"ulcer","低级别":"low","高级别":"high"}
-    
+    if _items_map is not None:
+        items_map = _items_map
     for i in range(len(temp_annotation['categories'])):
         temp_annotation['categories'][i]['name'] = items_map[temp_annotation['categories'][i]['name']]
     
     temp_annotation["images"] = []
     temp_annotation["annotations"] = []
 
-    fix_roi1 = [663,33,1890,1042]
+    #fix_roi1 = [663,33,1890,1042]
     #fix_roi2 = [570,13,1600,956]
     #fix_roi3 = [173,45,688,530]
-    #fix_roi1 = None
+    fix_roi1 = None
     ab_count=0
     for ImgId in coco.getImgIds():    
         img = coco.loadImgs([ImgId])[0]
@@ -185,12 +186,13 @@ def crop_wg(anno_dir = "/data2/qilei_chen/DATA/2021_2022gastro_cancers/2022_1/")
         anns = coco.loadAnns(annIds)
 
         for ann in anns:
-            ann['bbox'][0] = ann['bbox'][0] - fix_roi[0]
-            ann['bbox'][1] = ann['bbox'][1] - fix_roi[1]
+            ann['bbox'][0] = 0 if round(ann['bbox'][0] - fix_roi[0],2)<0 else round(ann['bbox'][0] - fix_roi[0],2)
+            ann['bbox'][1] = 0 if round(ann['bbox'][1] - fix_roi[1],2)<0 else round(ann['bbox'][1] - fix_roi[1],2)
             if len(ann["segmentation"]):
                 for i in range(int(len(ann["segmentation"][0])/2)):
-                    ann["segmentation"][0][2*i]-=fix_roi[0]
-                    ann["segmentation"][0][2*i+1]-=fix_roi[1]
+                    ann["segmentation"][0][2*i] = 0 if round(ann["segmentation"][0][2*i]-fix_roi[0],2)<0 else round(ann["segmentation"][0][2*i]-fix_roi[0],2)
+                    ann["segmentation"][0][2*i+1] = 0 if round(ann["segmentation"][0][2*i+1]-fix_roi[1],2)<0 else round(ann["segmentation"][0][2*i+1]-fix_roi[1],2)
+                    
                 temp_annotation["annotations"].append(ann)
             else:
                 temp_annotation["annotations"].append(ann)
@@ -198,6 +200,8 @@ def crop_wg(anno_dir = "/data2/qilei_chen/DATA/2021_2022gastro_cancers/2022_1/")
     print(ab_count)
     with open(os.path.join(anno_dir,'annotations/crop_instances_default.json'), 'w',errors='ignore') as outfile:
         json.dump(temp_annotation, outfile,ensure_ascii=False)
+        
+    return len(coco.getImgIds()),len(coco.getAnnIds())
 
 def mv_folder():
     src_dir = '/data2/qilei_chen/wj_fp_images1/images'
@@ -210,6 +214,20 @@ def mv_folder():
         print(command_line)
         os.system(command_line)
 
+def crop_ecs():
+    folders = glob.glob('data_ec/user*')
+    total_img_count,total_ann_count = 0,0
+    for folder in folders:
+        sub_folders = glob.glob(os.path.join(folder,"*"))
+        sub_folders = [sub_folder for sub_folder in sub_folders if not sub_folder.endswith('.zip')]
+        for sub_folder in sub_folders:
+            print(sub_folder)
+            img_count,ann_count = crop_wg(sub_folder,{'食管癌':'EsophagealCancer'})
+            total_img_count += img_count
+            total_ann_count += ann_count
+            
+    print(total_img_count)
+    print(total_ann_count)
 if __name__=="__main__":
     #change_video_names2()
     #crop_wg(anno_dir = "/data2/qilei_chen/DATA/2021_2022gastro_cancers/2021_1/")
@@ -227,5 +245,7 @@ if __name__=="__main__":
     #crop_wg(anno_dir='data_gc/xiangya_far_2021')
     #crop_wg(anno_dir='data_gc/xiangya_far_2022')
     #crop_wg(anno_dir='data_gc/xiangya_202209_202211')
-    crop_wg(anno_dir="data_gc/湘雅_远景_2021_2022_低级别_20230110")
+    #crop_wg(anno_dir="data_gc/湘雅_远景_2021_2022_低级别_20230110")
+    crop_ecs()
+    #crop_wg(anno_dir="data_ec/user11/201412_201912-148", _items_map={'食管癌':'EsophagealCancer',})
     

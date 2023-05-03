@@ -36,12 +36,23 @@ def get_db3():
     
     return append_fp_data_dir,fp_ann_file
 
-
+def get_db_ec():
+    append_fp_data_dir = "data_ec/user11/201412_201912-148/images"
+    
+    fp_ann_file = 'data_ec/user11/201412_201912-148/annotations/instances_default.json'
+    
+    return append_fp_data_dir,fp_ann_file
+def get_db_ec_crop():
+    append_fp_data_dir = "data_ec/user11/201412_201912-148/crop_images"
+    
+    fp_ann_file = 'data_ec/user11/201412_201912-148/annotations/crop_instances_default.json'
+    
+    return append_fp_data_dir,fp_ann_file
 #data_path,labels_path = get_db1(3)
 #data_path,labels_path = get_db2()
-data_path,labels_path = get_db3()
-
-
+#data_path,labels_path = get_db3()
+data_path,labels_path = get_db_ec()
+#data_path,labels_path = get_db_ec_crop()
 
 #dataset = fo.Dataset.from_images_dir("/data2/zinan_xiong/gastritis_0906_v1")
 dataset = fo.Dataset.from_dir(

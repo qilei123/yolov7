@@ -1,0 +1,10 @@
+
+train: data_ec/train_ec.txt
+val: data_ec/test_ec.txt
+test: data_ec/test_ec.txt
+
+# number of classes
+nc: 1
+
+# class names
+names: [ 'EsophagealCancer',]

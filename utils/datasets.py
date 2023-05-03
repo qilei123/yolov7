@@ -26,6 +26,9 @@ from copy import deepcopy
 from torchvision.utils import save_image
 from torchvision.ops import roi_pool, roi_align, ps_roi_pool, ps_roi_align
 
+import sys
+sys.path.append('/data1/qilei_chen/DEVELOPMENTS/yolov7')
+
 from utils.general import check_requirements, xyxy2xywh, xywh2xyxy, xywhn2xyxy, xyn2xy, segment2box, segments2boxes, \
     resample_segments, clean_str
 from utils.torch_utils import torch_distributed_zero_first
@@ -70,6 +73,17 @@ def create_dataloader(path, imgsz, batch_size, stride, opt, hyp=None, augment=Fa
     with torch_distributed_zero_first(rank):
         if path.endswith(".json"):
                 dataset = LoadCOCOv2(path, imgsz, batch_size,
+                                    augment=augment,  # augment images
+                                    hyp=hyp,  # augmentation hyperparameters
+                                    rect=rect,  # rectangular training
+                                    cache_images=cache,
+                                    single_cls=opt.single_cls,
+                                    stride=int(stride),
+                                    pad=pad,
+                                    image_weights=image_weights,
+                                    prefix=prefix)
+        elif path.endswith("ec.txt"):
+                dataset = LoadCOCOEC(path, imgsz, batch_size,
                                     augment=augment,  # augment images
                                     hyp=hyp,  # augmentation hyperparameters
                                     rect=rect,  # rectangular training
@@ -599,14 +613,15 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
             img, ratio, pad = letterbox(img, shape, auto=False, scaleup=self.augment)
             shapes = (h0, w0), ((h / h0, w / w0), pad)  # for COCO mAP rescaling
 
-            labels = self.labels[index].copy()
+            labels, segments = self.labels[index].copy(), self.segments[index].copy()
             if labels.size:  # normalized xywh to pixel xyxy format
                 labels[:, 1:] = xywhn2xyxy(labels[:, 1:], ratio[0] * w, ratio[1] * h, padw=pad[0], padh=pad[1])
+                segments = [xyn2xy(x, w, h, pad[0], pad[1]) for x in segments]
 
         if self.augment:
             # Augment imagespace
             if not mosaic:
-                img, labels = random_perspective(img, labels,
+                img, labels = random_perspective(img, labels, segments,
                                                  degrees=hyp['degrees'],
                                                  translate=hyp['translate'],
                                                  scale=hyp['scale'],
@@ -2721,7 +2736,195 @@ class LoadCOCOv2(LoadImagesAndLabels):
             self.images_cache_on = True
             
         print(cache_file_name+":"+str(len(self.imgs)))        
-    
+
+class LoadCOCOEC(LoadImagesAndLabels):
+    def __init__(self, path, img_size=640, batch_size=16, augment=False, hyp=None, rect=False, image_weights=False,
+                 cache_images=False, single_cls=False, stride=32, pad=0.0, prefix=''):
+        self.img_size = img_size
+        self.augment = augment
+        self.hyp = hyp
+        self.image_weights = image_weights
+        self.rect = False if image_weights else rect
+        self.mosaic = self.augment and not self.rect  # load 4 images at a time into a mosaic (only during training)
+        self.mosaic_border = [-img_size // 2, -img_size // 2]
+        self.stride = stride
+        self.path = path        
+        #self.albumentations = Albumentations() if augment else None
+
+        self.img_files =  []
+        self.labels = [] #(img,cat,x,y,w,h)
+        self.shapes = []
+        self.segments = []
+        self.instance_n = 0
+        
+        #dir_key_words = ['白光','baiguang']
+        #dir_key_words = ['NBI',]
+        dir_key_words = []
+        folders_txt = open(self.path)
+        folder = folders_txt.readline()
+        while folder:
+            folder = folder.replace("\n","")
+            sub_folders = glob.glob(os.path.join(os.path.dirname(self.path),folder,'*'))
+            sub_folders = [sub_folder for sub_folder in sub_folders if os.path.isdir(sub_folder)]
+            #print(sub_folders)
+            for sub_folder in sub_folders:
+                self.load_standard_annotations(sub_folder,[1],{1:0},dir_key_words)
+            
+            folder = folders_txt.readline()
+        
+        #self.labels = list(labels)
+        self.shapes = np.array(self.shapes, dtype=np.float64)
+        #self.img_files = list(cache.keys())  # update
+        #self.label_files = img2label_paths(cache.keys())  # update
+        if single_cls:
+            for x in self.labels:
+                x[:, 0] = 0
+
+        n = len(self.img_files)  # number of images
+        self.n = n
+        bi = np.floor(np.arange(n) / batch_size).astype(np.int)  # batch index
+
+        print(n)
+        print(self.instance_n)
+        
+        self.images_cache_on = False
+        self.imgs = []
+        self.img_hw0 = []
+        self.img_hw = []
+        self.images_cache()
+        
+        nb = bi[-1] + 1  # number of batches
+        self.batch = bi  # batch index of image
+        self.n = n
+        self.indices = range(n)
+
+        # Rectangular Training
+        if self.rect:
+            # Sort by aspect ratio
+            s = self.shapes  # wh
+            ar = s[:, 1] / s[:, 0]  # aspect ratio
+            irect = ar.argsort()
+            self.img_files = [self.img_files[i] for i in irect]
+            #self.label_files = [self.label_files[i] for i in irect]
+            self.labels = [self.labels[i] for i in irect]
+            self.shapes = s[irect]  # wh
+            ar = ar[irect]
+
+            # Set training image shapes
+            shapes = [[1, 1]] * nb
+            for i in range(nb):
+                ari = ar[bi == i]
+                mini, maxi = ari.min(), ari.max()
+                if maxi < 1:
+                    shapes[i] = [maxi, 1]
+                elif mini > 1:
+                    shapes[i] = [1, 1 / mini]
+
+            self.batch_shapes = np.ceil(np.array(shapes) * img_size / stride + pad).astype(np.int) * stride
+
+        # Cache images into memory for faster training (WARNING: large datasets may exceed system RAM)
+        self.imgs = [None] * n
+        if cache_images:
+            if cache_images == 'disk':
+                self.im_cache_dir = Path(Path(self.img_files[0]).parent.as_posix() + '_npy')
+                self.img_npy = [self.im_cache_dir / Path(f).with_suffix('.npy').name for f in self.img_files]
+                self.im_cache_dir.mkdir(parents=True, exist_ok=True)
+            gb = 0  # Gigabytes of cached images
+            self.img_hw0, self.img_hw = [None] * n, [None] * n
+            results = ThreadPool(8).imap(lambda x: load_image(*x), zip(repeat(self), range(n)))
+            pbar = tqdm(enumerate(results), total=n)
+            for i, x in pbar:
+                if cache_images == 'disk':
+                    if not self.img_npy[i].exists():
+                        np.save(self.img_npy[i].as_posix(), x[0])
+                    gb += self.img_npy[i].stat().st_size
+                else:
+                    self.imgs[i], self.img_hw0[i], self.img_hw[i] = x
+                    gb += self.imgs[i].nbytes
+                pbar.desc = f'{prefix}Caching images ({gb / 1E9:.1f}GB)'
+            pbar.close()
+
+    def load_standard_annotations(self,data_path,select_cats_id = [1,2,3,4,5],cat_id_map = {1:0,2:1,3:1,4:0,5:0},dir_key_words = []):
+            images_root = data_path
+            coco = COCO(os.path.join(images_root,'annotations','crop_instances_default.json'))
+            for ImgId in coco.getImgIds():
+
+                img = coco.loadImgs([ImgId])[0]
+                image_dir = os.path.join(images_root,'crop_images',img['file_name'])
+                if not os.path.exists(image_dir):
+                    #print(image_dir)
+                    continue
+                
+                skip = True
+                
+                if len(dir_key_words) == 0:
+                    skip = False
+                
+                for dir_key_word in dir_key_words:
+                    if dir_key_word in image_dir:
+                        skip = False
+                
+                if skip:
+                    continue
+
+                img_width,img_height = img['width'],img['height']
+
+                annIds =  coco.getAnnIds(ImgId)
+                anns = coco.loadAnns(annIds)
+
+                boxes = []
+                segs = []
+                for ann in anns:
+                    if ann['category_id'] in select_cats_id:
+                        
+                        box = [cat_id_map[ann['category_id']],
+                                (ann['bbox'][0]+ann['bbox'][2]/2)/img_width,
+                                (ann['bbox'][1]+ann['bbox'][3]/2)/img_height,
+                                ann['bbox'][2]/img_width,
+                                ann['bbox'][3]/img_height]
+                        '''
+                        box = []
+                        box.append(cat_id_map[ann['category_id']])
+                        '''
+                        seg = []
+                        #seg.append(self.cat_id_map[ann['category_id']])
+
+                        #ann_segmentation_minrect = seg2minrect(ann['segmentation'][0])
+                        if 'segmentation' in ann and len(ann['segmentation']):
+                            for coord_index,coord in enumerate(ann['segmentation'][0]):
+                                if coord_index%2==1:
+                                    
+                                    #box.append(ann_segmentation_minrect[coord_index-1]/img_width)
+                                    #box.append(coord/img_height)
+
+                                    seg.append(ann['segmentation'][0][coord_index-1]/img_width)
+                                    seg.append(coord/img_height)
+
+                                    #box.append(ann_segmentation_minrect[coord_index-1])
+                                    #box.append(coord)
+
+                                    #seg.append(ann['segmentation'][0][coord_index-1])
+                                    #seg.append(coord)
+                        
+                        boxes.append(box)
+                        segs.append(np.array(seg, dtype=np.float32).reshape(-1, 2))
+
+                if len(boxes)>0:
+                    self.instance_n+=len(boxes)
+                    self.labels.append(np.array(boxes, dtype=np.float64))
+                    self.shapes.append((img_width,img_height))
+                    self.segments.append(segs)
+                    self.img_files.append(image_dir)
+
+    def images_cache(self):
+        for index in range(self.n):
+            image,img_size,img_resize = load_image(self,index) 
+            self.imgs.append(image)
+            self.img_hw0.append(img_size)
+            self.img_hw.append(img_resize)
+            
+        self.images_cache_on = True
+            
 class LoadEvaVideos(LoadImagesAndLabels):
     def __init__(self, path, img_size=640, batch_size=16, augment=False, hyp=None, rect=False, image_weights=False,
                  cache_images=False, single_cls=False, stride=32, pad=0.0, prefix=''):
@@ -3329,7 +3532,7 @@ def random_perspective(img, targets=(), segments=(), degrees=10, translate=.1, s
     # Transform label coordinates
     n = len(targets)
     if n:
-        use_segments = all(x.any() for x in segments)
+        use_segments = any(x.any() for x in segments)
         new = np.zeros((n, 4))
         if use_segments:  # warp segments
             segments = resample_segments(segments)  # upsample
@@ -3582,6 +3785,9 @@ def load_segmentations(self, index):
     return self.segs[key]
 
 if __name__ == "__main__":
-    train_loader = LoadCOCO('')
-    test_loader = LoadCOCO("")
+    #train_loader = LoadCOCO('')
+    #test_loader = LoadCOCO("")
+    
+    LoadCOCOEC(path = 'data_ec/train_ec.txt')
+    LoadCOCOEC(path = 'data_ec/test_ec.txt')
     
