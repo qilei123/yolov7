@@ -1024,11 +1024,15 @@ def generate_eval_on_videos():
     anno_constructor.save_annotation(os.path.join(dataset_dir,"annotations","crop_instances_default.json"))
 
 def process_videos_trains():
+    '''
     model_names = ['WJ_V1_with_mfp7-22-2_retrain_recovery',
                    'WJ_V1_with_mfp7-22-2_retrain_recovery1',
                    'WJ_V1_with_mfp7-22-2-0','WJ_V1_with_mfp7-22-2-1','WJ_V1_with_mfp7-22-2-2',
                    'WJ_V1_with_mfp7-22-2-3','WJ_V1_with_mfp7-22-2-4','WJ_V1_with_mfp7-22-2-5',
                    'WJ_V1_with_mfp7-22-2-recovery','WJ_V1_with_mfp7-22-2-recurrent']
+    '''
+    model_names = ['WJ_V1_with_mfp7-22-2-7',
+                   'WJ_V1_with_mfp7-22-2-8']
     videos_dirs = ['data_gc/videos_test/xiehe2111_2205','data_gc/videos_test/十二指肠乳头视频片段']
     
     for videos_dir in videos_dirs:
