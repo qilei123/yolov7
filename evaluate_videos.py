@@ -72,7 +72,7 @@ def compare_between_2periods(gt_periods,pd_periods):
     
     return recall,precision
 
-def load_and_eval():
+def load_and_eval(_exp_name=''):
 
     data_dir = 'data_gc/videos_test/'
     
@@ -81,6 +81,8 @@ def load_and_eval():
     #exp_name = 'WJ_V1_with_mfp7x-22-2_ppsa_best_roifix'
     #exp_name = 'WJ_V1_with_mfp7x-22-2_best_roifix'
     exp_name = 'WJ_V1_with_mfp7-22-2_v4-0_best_roifix_0.3_vis'
+    if _exp_name != '':
+        exp_name = _exp_name
     
     print(exp_name)
     
@@ -92,7 +94,7 @@ def load_and_eval():
     
     for gt_file,pd_file in zip(gt_files,pd_files):
         
-        print(os.path.basename(gt_file))
+        #print(os.path.basename(gt_file))
         
         gt_periods = periods_filter(get_positive_periods(gt_file))
         pd_periods = periods_filter(get_positive_periods(pd_file),2)
@@ -108,7 +110,22 @@ def load_and_eval():
         
     print(A_recalls)
     print(A_precisions)
-        
+
+def load_and_eval_list():
+    folders_list = ['WJ_V1_with_mfp7-22-2_retrain_recovery_best_roifix_0.3',
+                    'WJ_V1_with_mfp7-22-2_retrain_recovery1_best_roifix_0.3',
+                    'WJ_V1_with_mfp7-22-2-0_best_roifix_0.3',
+                    'WJ_V1_with_mfp7-22-2-1_best_roifix_0.3',
+                    'WJ_V1_with_mfp7-22-2-2_best_roifix_0.3',
+                    'WJ_V1_with_mfp7-22-2-3_best_roifix_0.3',
+                    'WJ_V1_with_mfp7-22-2-4_best_roifix_0.3',
+                    'WJ_V1_with_mfp7-22-2-5_best_roifix_0.3',
+                    'WJ_V1_with_mfp7-22-2-recovery_best_roifix_0.3',
+                    'WJ_V1_with_mfp7-22-2-recurrent_best_roifix_0.3'
+                    ]
+    for folder in folders_list:
+        load_and_eval(folder)
+            
     
 if __name__ == '__main__':
     '''
@@ -121,6 +138,7 @@ if __name__ == '__main__':
     compare_between_2periods(gt_periods,pd_periods)
     '''
     
-    load_and_eval()
+    #load_and_eval()
+    load_and_eval_list()
     
     
