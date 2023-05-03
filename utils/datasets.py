@@ -2259,7 +2259,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         prob = 0.3
         train_both = False
         import random
-        if True: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練過程中
+        if False: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練過程中
             append_fp_data_dir = "/data2/qilei_chen/wj_fp_images1"
 
             select_cats_id = [1,]
@@ -2459,8 +2459,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         self.datasets_count.append(len(self.img_files))
         
-        times_12zc = 10
-        cat_id = 1
+        times_12zc = 5
+        cat_id = 1 #1代表分2类，2代表分三类
         if True: #将带有十二指肠乳头的fp数据集纳入训练过程
             append_fp_data_dir = "data_gc/胃部高风险病变误报图片"
             if not test_mode:
@@ -2496,7 +2496,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         nb = bi[-1] + 1  # number of batches
         self.batch = bi  # batch index of image
         self.n = n
-        shuffle = False
+        shuffle = True
         if test_mode:
             self.indices = range(n)
         else:
@@ -3532,7 +3532,7 @@ def random_perspective(img, targets=(), segments=(), degrees=10, translate=.1, s
     # Transform label coordinates
     n = len(targets)
     if n:
-        use_segments = any(x.any() for x in segments)
+        use_segments = all(x.any() for x in segments) and len(segments)>0
         new = np.zeros((n, 4))
         if use_segments:  # warp segments
             segments = resample_segments(segments)  # upsample
