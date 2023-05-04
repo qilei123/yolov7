@@ -124,9 +124,12 @@ def load_and_eval_list():
                     'WJ_V1_with_mfp7-22-2-recovery_best_roifix_0.3',
                     'WJ_V1_with_mfp7-22-2-recurrent_best_roifix_0.3'
                     ]
-    '''
+    
     folders_list = ['WJ_V1_with_mfp7-22-2-7_best_roifix_0.3',
                     'WJ_V1_with_mfp7-22-2-8_best_roifix_0.3',]
+    '''
+    folders_list = ['WJ_V1_with_mfp7-22-2-8-ns_best_roifix_0.3',
+                    'WJ_V1_with_mfp7-22-2-9-ns_best_roifix_0.3',]
     for folder in folders_list:
         load_and_eval(folder)
             

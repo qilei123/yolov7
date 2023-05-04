@@ -1030,9 +1030,11 @@ def process_videos_trains():
                    'WJ_V1_with_mfp7-22-2-0','WJ_V1_with_mfp7-22-2-1','WJ_V1_with_mfp7-22-2-2',
                    'WJ_V1_with_mfp7-22-2-3','WJ_V1_with_mfp7-22-2-4','WJ_V1_with_mfp7-22-2-5',
                    'WJ_V1_with_mfp7-22-2-recovery','WJ_V1_with_mfp7-22-2-recurrent']
+    
+    model_names = ['WJ_V1_with_mfp7-22-2-8-ns',
+                   'WJ_V1_with_mfp7-22-2-9-ns']
     '''
-    model_names = ['WJ_V1_with_mfp7-22-2-7',
-                   'WJ_V1_with_mfp7-22-2-8']
+    model_names = ['WJ_V1_with_mfp7-22-2-9',]
     videos_dirs = ['data_gc/videos_test/xiehe2111_2205','data_gc/videos_test/十二指肠乳头视频片段']
     
     for videos_dir in videos_dirs:
