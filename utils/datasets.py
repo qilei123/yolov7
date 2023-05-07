@@ -2459,7 +2459,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         self.datasets_count.append(len(self.img_files))
         
-        times_12zc = 5
+        times_12zc = 6
         cat_id = 2 #1代表分2类，2代表分三类
         if True: #将带有十二指肠乳头的fp数据集纳入训练过程
             append_fp_data_dir = "data_gc/胃部高风险病变误报图片"
@@ -2480,7 +2480,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         self.datasets_count.append(len(self.img_files))        
         
-        if True: #将带有十二指肠乳头的fp数据集中空图片纳入训练过程
+        if False: #将带有十二指肠乳头的fp数据集中空图片纳入训练过程
             append_fp_data_dir = "data_gc/胃部高风险病变误报图片_empty"
             
             if not test_mode:
@@ -2736,7 +2736,9 @@ class LoadCOCOv2(LoadImagesAndLabels):
             self.images_cache_on = True
             
         print(cache_file_name+":"+str(len(self.imgs)))        
-
+    def shuffle_indices(self):
+        #print('shuffle indices!')
+        random.shuffle(self.indices)
 class LoadCOCOEC(LoadImagesAndLabels):
     def __init__(self, path, img_size=640, batch_size=16, augment=False, hyp=None, rect=False, image_weights=False,
                  cache_images=False, single_cls=False, stride=32, pad=0.0, prefix=''):

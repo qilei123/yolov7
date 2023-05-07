@@ -316,6 +316,10 @@ def train(hyp, opt, device, tb_writer=None):
     torch.save(model, wdir / 'init.pt')
     best_epoch_index,best_f1_epoch_index,best_f2_epoch_index,best_f05_epoch_index, best_r_epoch_index = 0,0,0,0,0
     for epoch in range(start_epoch, epochs):  # epoch ------------------------------------------------------------------
+        
+        if opt.shuffle_data_epoch:
+            dataset.shuffle_indices()
+        
         model.train()
 
         # Update image weights (optional)
@@ -619,6 +623,7 @@ if __name__ == '__main__':
     parser.add_argument('--freeze', nargs='+', type=int, default=[0], help='Freeze layers: backbone of yolov7=50, first3=0 1 2')
     parser.add_argument('--v5-metric', action='store_true', help='assume maximum recall as 1.0 in AP calculation')
     parser.add_argument('--c_criteria', action='store_true', help='with c_criteria')
+    parser.add_argument('--shuffle_data_epoch', action='store_true', help='shuffle data for each epoch')
     opt = parser.parse_args()
 
     # Set DDP variables

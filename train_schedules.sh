@@ -1,16 +1,16 @@
 #train gc
 python train_org_dev.py --workers 64 \
-    --device 1,3 \
+    --device 2,3 \
     --batch-size 64 \
     --data data/wj_v1_with_fp3.yaml \
     --cfg cfg/training/yolov7-wj_v1_with_fp3.yaml \
     --weights 'yolov7.pt' \
     --name yolov7-wj_v1_with_fp \
     --hyp data/hyp.scratch.gc.yaml \
-    --project 27_yolov7_output/WJ_V1_with_mfp7-22-2-8-ns \
+    --project 27_yolov7_output/WJ_V1_with_mfp7-22-2-12 \
     --exist-ok \
     --c_criteria \
-    --epochs 150
+    --epochs 300 --shuffle_data_epoch
 #     --img-size 800
 #train ec
 # python train_org_dev.py --workers 64 \
