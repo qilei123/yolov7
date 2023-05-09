@@ -246,6 +246,7 @@ if __name__=="__main__":
     #crop_wg(anno_dir='data_gc/xiangya_far_2022')
     #crop_wg(anno_dir='data_gc/xiangya_202209_202211')
     #crop_wg(anno_dir="data_gc/湘雅_远景_2021_2022_低级别_20230110")
-    crop_ecs()
+    #crop_ecs()
     #crop_wg(anno_dir="data_ec/user11/201412_201912-148", _items_map={'食管癌':'EsophagealCancer',})
+    crop_wg(anno_dir="data_gc/gas12nips",_items_map={'gas12nip':'gas12nip',})
     
