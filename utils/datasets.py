@@ -2498,7 +2498,17 @@ class LoadCOCOv2(LoadImagesAndLabels):
                 self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:1})            
 
         self.datasets_count.append(len(self.img_files))
+        print(self.datasets_count)
+        repeat_time_gc_df1 = 1
+        if True: #gc_df1随机挑选的纳入训练中
+            append_fp_data_dir = "data_gc/gc_df1"
+            
+            if not test_mode:
+                for rt in range(repeat_time_gc_df1):
+                    self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:0})            
 
+        self.datasets_count.append(len(self.img_files))    
+        print(self.datasets_count)
         self.shapes = np.array(self.shapes, dtype=np.float64)
         #self.img_files = list(cache.keys())  # update
         #self.label_files = img2label_paths(cache.keys())  # update
