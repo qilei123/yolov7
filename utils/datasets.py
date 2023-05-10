@@ -2470,9 +2470,9 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         self.datasets_count.append(len(self.img_files))
         
-        times_12zc = 1
+        times_12zc = 2
         cat_id = 2 #1代表分2类，2代表分三类
-        if True: #将带有十二指肠乳头的fp数据集纳入训练过程
+        if True: #将手动标注的带有十二指肠乳头的fp数据集纳入训练过程
             append_fp_data_dir = "data_gc/gas12nips"
             if not test_mode:
                 for i in range(times_12zc):
@@ -2498,8 +2498,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
                 self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:1})            
 
         self.datasets_count.append(len(self.img_files))
-        print(self.datasets_count)
-        repeat_time_gc_df1 = 1
+        #print(self.datasets_count)
+        repeat_time_gc_df1 = 3
         if True: #gc_df1随机挑选的纳入训练中
             append_fp_data_dir = "data_gc/gc_df1"
             
@@ -2508,7 +2508,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
                     self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:0})            
 
         self.datasets_count.append(len(self.img_files))    
-        print(self.datasets_count)
+        #print(self.datasets_count)
         self.shapes = np.array(self.shapes, dtype=np.float64)
         #self.img_files = list(cache.keys())  # update
         #self.label_files = img2label_paths(cache.keys())  # update
