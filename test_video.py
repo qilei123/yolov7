@@ -55,7 +55,7 @@ def is_in_periods(frame_id,positive_periods):
         
     return False
 
-def process_videos(_model_name='',_videos_dir='',_gpu_id = -1):
+def process_videos(_model_name='',_videos_dir='',_model_pt_name = '',_gpu_id = -1):
 
     visualize = False
     gpu_id = 3
@@ -71,9 +71,13 @@ def process_videos(_model_name='',_videos_dir='',_gpu_id = -1):
     if _model_name != '':
         model_name = _model_name
     #model_name = 'WJ_V1_with_mfp7x-22-2_ppsa_v2'
-    print(model_name)
+    #print(model_name)
     
     model_pt_name = 'best'
+    if _model_pt_name!='':
+        model_pt_name = _model_pt_name
+    
+    print(model_name+'/'+model_pt_name)
     
     model_dir = '27_yolov7_output/'+model_name+'/yolov7-wj_v1_with_fp/weights/'+model_pt_name+'.pt'
     
@@ -1036,12 +1040,17 @@ def process_videos_trains():
     '''
     #model_names = ['WJ_V1_with_mfp7-22-2-9',]
     #model_names = ['WJ_V1_with_mfp7-22-2-10-ns','WJ_V1_with_mfp7-22-2-11','WJ_V1_with_mfp7-22-2-12']
-    model_names = ['WJ_V1_with_mfp7-22-2-13',]
+    #model_names = ['WJ_V1_with_mfp7-22-2-13',]
+    model_names = ['WJ_V1_with_mfp7-22-2-14',]
     videos_dirs = ['data_gc/videos_test/xiehe2111_2205','data_gc/videos_test/十二指肠乳头视频片段']
-    
+    model_pt_names = ["best","best_f1","best_f2",]
     for videos_dir in videos_dirs:
         for model_name in model_names:
-            process_videos(_model_name=model_name,_videos_dir=videos_dir)
+            for model_pt_name in model_pt_names:
+                process_videos(_model_name=model_name,
+                               _videos_dir=videos_dir,
+                               _model_pt_name=model_pt_name,
+                               _gpu_id = 2)
     
 if __name__ == '__main__':
     #process_videos()
