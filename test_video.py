@@ -1041,7 +1041,8 @@ def process_videos_trains():
     #model_names = ['WJ_V1_with_mfp7-22-2-9',]
     #model_names = ['WJ_V1_with_mfp7-22-2-10-ns','WJ_V1_with_mfp7-22-2-11','WJ_V1_with_mfp7-22-2-12']
     #model_names = ['WJ_V1_with_mfp7-22-2-13',]
-    model_names = ['WJ_V1_with_mfp7-22-2-14',]
+    #model_names = ['WJ_V1_with_mfp7-22-2-14',]
+    model_names = ['WJ_V1_with_mfp7-22-2-15',]
     videos_dirs = ['data_gc/videos_test/xiehe2111_2205','data_gc/videos_test/十二指肠乳头视频片段']
     model_pt_names = ["best","best_f1","best_f2",]
     for videos_dir in videos_dirs:
