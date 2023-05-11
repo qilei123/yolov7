@@ -3,11 +3,14 @@ import time
 
 gastro_disease_detector = GastroDiseaseDetect(half =True)
 
-gastro_disease_detector.ini_model(model_dir="/data2_fast/zzhang/yolov7/runs/train/yolov76/weights/best.pt")
+gastro_disease_detector.ini_model(model_dir="out/WJ_V1_with_mfp7-22-2_retrain/yolov7-wj_v1_with_fp/weights/best.pt")
 
-image = cv2.imread("IMG_01.00280655.0023.13592300330.jpg")
+img_dir = 'data_gc/gc_df2/crop_images/190/00008_20211015_170416_425.jpg'
 
-for i in range(100):
+image = cv2.imread(img_dir)
+
+iter = 1
+for i in range(iter):
 
     t1 = time.time()
 
@@ -19,4 +22,4 @@ for i in range(100):
     print(f'({(1E3 * (t2 - t1)):.1f}ms) Inference')
 
 
-gastro_disease_detector.show_result_on_image(image,result,'test_result.jpg')
+gastro_disease_detector.show_result_on_image(image,result,'results/test_result4.jpg',[0])
