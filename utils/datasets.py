@@ -2259,7 +2259,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         prob = 0.3
         train_both = False
         import random
-        if False: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練過程中
+        if True: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練過程中
             append_fp_data_dir = "/data2/qilei_chen/wj_fp_images1"
 
             select_cats_id = [1,]
@@ -2459,7 +2459,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         self.datasets_count.append(len(self.img_files))
         
-        times_12zc = 4
+        times_12zc = 1
         cat_id = 2 #1代表分2类，2代表分三类
         if True: #将带有十二指肠乳头的fp数据集纳入训练过程
             append_fp_data_dir = "data_gc/胃部高风险病变误报图片"
@@ -2470,7 +2470,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         self.datasets_count.append(len(self.img_files))
         
-        times_12zc = 2
+        times_12zc = 1
         cat_id = 2 #1代表分2类，2代表分三类
         if True: #将手动标注的带有十二指肠乳头的fp数据集纳入训练过程
             append_fp_data_dir = "data_gc/gas12nips"
@@ -2491,7 +2491,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         self.datasets_count.append(len(self.img_files))        
         
-        if True: #将带有十二指肠乳头的fp数据集中空图片纳入训练过程
+        if False: #将带有十二指肠乳头的fp数据集中空图片纳入训练过程
             append_fp_data_dir = "data_gc/胃部高风险病变误报图片_empty"
             
             if not test_mode:
@@ -2499,7 +2499,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         self.datasets_count.append(len(self.img_files))
         #print(self.datasets_count)
-        repeat_time_gc_df1 = 2
+        repeat_time_gc_df1 = 1
         if True: #gc_df1随机挑选的纳入训练中
             append_fp_data_dir = "data_gc/gc_df1"
             
@@ -2510,7 +2510,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         self.datasets_count.append(len(self.img_files))    
         #print(self.datasets_count)
         
-        repeat_time_gc_df2 = 2
+        repeat_time_gc_df2 = 1
         if True: #gc_df1随机挑选的纳入训练中
             append_fp_data_dir = "data_gc/gc_df2"
             
