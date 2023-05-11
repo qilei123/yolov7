@@ -134,10 +134,15 @@ def load_and_eval_list():
                      'WJ_V1_with_mfp7-22-2-11_best_roifix_0.3',
                      'WJ_V1_with_mfp7-22-2-12_best_roifix_0.3',
                      'WJ_V1_with_mfp7-22-2-13_best_roifix_0.3',
-                     'WJ_V1_with_mfp7-22-2-14_best_roifix_0.3']
+                     'WJ_V1_with_mfp7-22-2-14_best_roifix_0.3',
+                     'WJ_V1_with_mfp7-22-2-15_best_f2_roifix_0.3']
     for folder in folders_list:
         load_and_eval(folder)
-            
+
+def generate_eval_images_from_videos():
+    data_dir = 'data_gc/videos_test/'
+    
+    gt_files = sorted(glob.glob(os.path.join(data_dir,"xiehe2111_2205/*.mp4.txt")))            
     
 if __name__ == '__main__':
     '''
