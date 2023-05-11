@@ -2491,7 +2491,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         self.datasets_count.append(len(self.img_files))        
         
-        if False: #将带有十二指肠乳头的fp数据集中空图片纳入训练过程
+        if True: #将带有十二指肠乳头的fp数据集中空图片纳入训练过程
             append_fp_data_dir = "data_gc/胃部高风险病变误报图片_empty"
             
             if not test_mode:
@@ -2499,7 +2499,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         self.datasets_count.append(len(self.img_files))
         #print(self.datasets_count)
-        repeat_time_gc_df1 = 3
+        repeat_time_gc_df1 = 2
         if True: #gc_df1随机挑选的纳入训练中
             append_fp_data_dir = "data_gc/gc_df1"
             
@@ -2509,6 +2509,17 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
         self.datasets_count.append(len(self.img_files))    
         #print(self.datasets_count)
+        
+        repeat_time_gc_df2 = 2
+        if True: #gc_df1随机挑选的纳入训练中
+            append_fp_data_dir = "data_gc/gc_df2"
+            
+            if not test_mode:
+                for rt in range(repeat_time_gc_df2):
+                    self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:0})            
+
+        self.datasets_count.append(len(self.img_files))   
+        
         self.shapes = np.array(self.shapes, dtype=np.float64)
         #self.img_files = list(cache.keys())  # update
         #self.label_files = img2label_paths(cache.keys())  # update
