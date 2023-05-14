@@ -2511,14 +2511,24 @@ class LoadCOCOv2(LoadImagesAndLabels):
         #print(self.datasets_count)
         
         repeat_time_gc_df2 = 1
-        if True: #gc_df1随机挑选的纳入训练中
+        if True: #gc_df2随机挑选的纳入训练中
             append_fp_data_dir = "data_gc/gc_df2"
             
             if not test_mode:
                 for rt in range(repeat_time_gc_df2):
                     self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:0})            
 
-        self.datasets_count.append(len(self.img_files))   
+        self.datasets_count.append(len(self.img_files))  
+        
+        repeat_time_gc_df_e50 = ['_rd',]
+        if True: #gc_df_e50挑选的纳入训练中
+            append_fp_data_dir = "data_gc/gc_df_e50"
+            
+            if not test_mode:
+                for rt in repeat_time_gc_df_e50:
+                    self.load_standard_gastro(append_fp_data_dir+"/gc_df"+str(rt),select_cats_id=[1,],cat_id_map={1:0})            
+
+        self.datasets_count.append(len(self.img_files))           
         
         self.shapes = np.array(self.shapes, dtype=np.float64)
         #self.img_files = list(cache.keys())  # update
