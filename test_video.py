@@ -55,11 +55,14 @@ def is_in_periods(frame_id,positive_periods):
         
     return False
 
-def process_videos(_model_name='',_videos_dir='',_model_pt_name = '',_gpu_id = -1):
+def process_videos(_model_name='',_videos_dir='',
+                   _model_pt_name = '',_gpu_id = -1,
+                   visualize = False,visualize_fp = False,
+                   visualize_fn = False,
+                   ):
 
-    visualize = False
     gpu_id = 3
-    if _gpu_id>0:
+    if _gpu_id>=0:
         gpu_id = _gpu_id
     conf = 0.3
     
@@ -94,9 +97,8 @@ def process_videos(_model_name='',_videos_dir='',_model_pt_name = '',_gpu_id = -
 
     #report_images_dir = '/data2/qilei_chen/wj_fp_images1'
     report_images_dir = videos_dir+'_'+model_name+'_'+model_pt_name+'_roifix_'+str(conf)
-    if visualize:
+    if visualize or visualize_fp or visualize_fn:
         report_images_dir += '_vis'
-        
     
     os.makedirs(report_images_dir,exist_ok=True)
 
@@ -107,13 +109,16 @@ def process_videos(_model_name='',_videos_dir='',_model_pt_name = '',_gpu_id = -
     for video_dir in sorted(video_list):
         print(video_dir)
         video = cv2.VideoCapture(video_dir)
-        #positive_periods = get_positive_periods(video_dir+'.txt')
+        positive_periods = get_positive_periods(video_dir+'.txt')
 
-        #video_name = os.path.basename(video_dir)
-
-        #images_folder = os.path.join(report_images_dir,video_name.replace('.mp4',''))
-
-        #os.makedirs(images_folder,exist_ok=True)
+        video_name = os.path.basename(video_dir)
+        if visualize_fp:
+            images_fp_folder = os.path.join(report_images_dir,video_name.replace('.mp4',''),'fp')
+            os.makedirs(images_fp_folder,exist_ok=True)
+            
+        if visualize_fn:
+            images_fn_folder = os.path.join(report_images_dir,video_name.replace('.mp4',''),'fn')
+            os.makedirs(images_fn_folder,exist_ok=True)
 
         fps = video.get(cv2.CAP_PROP_FPS)
         roi = None
@@ -139,7 +144,6 @@ def process_videos(_model_name='',_videos_dir='',_model_pt_name = '',_gpu_id = -
         if visualize:
             video_writer = cv2.VideoWriter(os.path.join(report_images_dir,os.path.basename(video_dir)+'.avi'), 
                                         cv2.VideoWriter_fourcc('X', 'V', 'I', 'D'), fps, size)
-        
         #os.makedirs(os.path.join(report_images_dir,os.path.basename(video_dir)+'_fp','org_images'), exist_ok=True)
         if visualize:
             os.makedirs(os.path.join(report_images_dir,os.path.basename(video_dir)+'_fp','result_images'), exist_ok=True)
@@ -170,8 +174,11 @@ def process_videos(_model_name='',_videos_dir='',_model_pt_name = '',_gpu_id = -
             else:
                 frame_id_report_log.write(str(frame_id)+' #0\n')   
                 
-            #if positive and (not is_in_periods(frame_id,positive_periods)) and visualize:
-            #    cv2.imwrite(os.path.join(report_images_dir,os.path.basename(video_dir)+'_fp','result_images',str(frame_id).zfill(10)+".jpg"), frame)     
+            if positive and (not is_in_periods(frame_id,positive_periods)) and visualize_fp:
+                cv2.imwrite(os.path.join(images_fp_folder,str(frame_id).zfill(10)+".jpg"), frame)     
+
+            if (not positive) and  is_in_periods(frame_id,positive_periods) and visualize_fn:
+                cv2.imwrite(os.path.join(images_fn_folder,str(frame_id).zfill(10)+".jpg"), frame)  
                         
             if visualize:
                 video_writer.write(frame)
@@ -919,7 +926,9 @@ def generate_fp_coco3():
 
 def generate_test_video_labels():
     
-    videos_periods = open('data_gc/videos_test/video_labels.txt')
+    version = 'v2' #'v1
+    
+    videos_periods = open('data_gc/videos_test/video_labels_'+version+'.txt')
     
     video_folder = ''
     
@@ -930,12 +939,14 @@ def generate_test_video_labels():
         
         if len(records) == 1:
             video_folder = records[0].replace("\n", "")
+            os.makedirs(os.path.join('data_gc/videos_test',video_folder,version))
+            video_folder = os.path.join('data_gc/videos_test',video_folder)#set video folder to the real relative one
         else:
-            cap = cv2.VideoCapture(os.path.join('data_gc/videos_test',video_folder,records[0]))
+            cap = cv2.VideoCapture(os.path.join(video_folder,records[0]))
             fps = cap.get(cv2.CAP_PROP_FPS)
             frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
             
-            video_label = open(os.path.join('data_gc/videos_test',video_folder,records[0]+'.txt'), "w")
+            video_label = open(os.path.join(video_folder,version,records[0]+'.txt'), "w")
             
             periods = []
             
@@ -1043,16 +1054,25 @@ def process_videos_trains():
     #model_names = ['WJ_V1_with_mfp7-22-2-13',]
     #model_names = ['WJ_V1_with_mfp7-22-2-14',]
     #model_names = ['WJ_V1_with_mfp7-22-2-15',]
-    model_names = ['WJ_V1_with_mfp7-22-2-18',]
-    videos_dirs = ['data_gc/videos_test/xiehe2111_2205','data_gc/videos_test/十二指肠乳头视频片段']
-    model_pt_names = ["best","best_f1","best_f2",]
+    #model_names = ['WJ_V1_with_mfp7-22-2-18',]
+    #model_names = ['WJ_V1_with_mfp7-22-2-19','WJ_V1_with_mfp7-22-2-20','WJ_V1_with_mfp7-22-2-21',]
+    model_names = ['WJ_V1_with_mfp7-22-2-22',]
+    videos_dirs = ['data_gc/videos_test/xiehe2111_2205',
+                   #'data_gc/videos_test/十二指肠乳头视频片段',
+                   ]
+    model_pt_names = ["best",
+                      #"best_f1",
+                      #"best_f2",
+                      ]
     for videos_dir in videos_dirs:
         for model_name in model_names:
             for model_pt_name in model_pt_names:
                 process_videos(_model_name=model_name,
                                _videos_dir=videos_dir,
                                _model_pt_name=model_pt_name,
-                               _gpu_id = 2)
+                               _gpu_id = 2,
+                               visualize_fp=True,
+                               visualize_fn=True)
     
 if __name__ == '__main__':
     #process_videos()
