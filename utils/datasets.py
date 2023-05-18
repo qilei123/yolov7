@@ -2460,7 +2460,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         self.datasets_count.append(len(self.img_files))
         
         times_12zc = 1
-        cat_id = 2 #1代表分2类，2代表分三类
+        cat_id = 1 #1代表分2类，2代表分三类
         if True: #将带有十二指肠乳头的fp数据集纳入训练过程
             append_fp_data_dir = "data_gc/胃部高风险病变误报图片"
             if not test_mode:
@@ -2471,7 +2471,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         self.datasets_count.append(len(self.img_files))
         
         times_12zc = 1
-        cat_id = 2 #1代表分2类，2代表分三类
+        #cat_id = 1 #1代表分2类，2代表分三类
         if True: #将手动标注的带有十二指肠乳头的fp数据集纳入训练过程
             append_fp_data_dir = "data_gc/gas12nips"
             if not test_mode:
@@ -2500,7 +2500,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         self.datasets_count.append(len(self.img_files))
         #print(self.datasets_count)
         repeat_time_gc_df1 = 1
-        if True: #gc_df1随机挑选的纳入训练中
+        if False: #gc_df1随机挑选的纳入训练中
             append_fp_data_dir = "data_gc/gc_df1"
             
             if not test_mode:
@@ -2511,7 +2511,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         #print(self.datasets_count)
         
         repeat_time_gc_df2 = 1
-        if True: #gc_df2随机挑选的纳入训练中
+        if False: #gc_df2随机挑选的纳入训练中
             append_fp_data_dir = "data_gc/gc_df2"
             
             if not test_mode:
@@ -2521,7 +2521,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         self.datasets_count.append(len(self.img_files))  
         
         repeat_time_gc_df_e50 = ['_rd',]
-        if True: #gc_df_e50挑选的纳入训练中
+        if False: #gc_df_e50挑选的纳入训练中
             append_fp_data_dir = "data_gc/gc_df_e50"
             
             if not test_mode:
@@ -2529,7 +2529,27 @@ class LoadCOCOv2(LoadImagesAndLabels):
                     self.load_standard_gastro(append_fp_data_dir+"/gc_df"+str(rt),select_cats_id=[1,],cat_id_map={1:0})            
 
         self.datasets_count.append(len(self.img_files))           
-        
+
+        repeat_time_gc_df_e70 = ['_rd',]
+        if False: #gc_df_e70挑选的纳入训练中
+            append_fp_data_dir = "data_gc/gc_df_e70"
+            
+            if not test_mode:
+                for rt in repeat_time_gc_df_e70:
+                    self.load_standard_gastro(append_fp_data_dir+"/gc_df"+str(rt),select_cats_id=[1,],cat_id_map={1:0})            
+
+        self.datasets_count.append(len(self.img_files))  
+
+        repeat_time_gc_df_e100 = ['_rd',]
+        if False: #gc_df_e100挑选的纳入训练中
+            append_fp_data_dir = "data_gc/gc_df_e100"
+            
+            if not test_mode:
+                for rt in repeat_time_gc_df_e100:
+                    self.load_standard_gastro(append_fp_data_dir+"/gc_df"+str(rt),select_cats_id=[1,],cat_id_map={1:0})            
+
+        self.datasets_count.append(len(self.img_files))  
+
         self.shapes = np.array(self.shapes, dtype=np.float64)
         #self.img_files = list(cache.keys())  # update
         #self.label_files = img2label_paths(cache.keys())  # update

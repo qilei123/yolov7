@@ -1,4 +1,7 @@
 #train gc
+DELAY_TIME=1s
+sleep $DELAY_TIME
+echo "train after $DELAY_TIME"
 python train_org_dev.py --workers 64 \
     --device 0,1 \
     --batch-size 64 \
@@ -7,7 +10,7 @@ python train_org_dev.py --workers 64 \
     --weights 'yolov7.pt' \
     --name yolov7-wj_v1_with_fp \
     --hyp data/hyp.scratch.gc.yaml \
-    --project 27_yolov7_output/WJ_V1_with_mfp7-22-2-22 \
+    --project 27_yolov7_output/WJ_V1_with_mfp7-22-2-25 \
     --exist-ok \
     --c_criteria \
     --epochs 300 --shuffle_data_epoch

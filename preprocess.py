@@ -1,5 +1,6 @@
 import os
 import glob
+import sys
 def change_video_names():
     records = open('temp_datas/changweijing_issues1.txt',encoding="utf8")
     #map_records = open('temp_datas/changweijing_issues_filenames_map.txt','w',encoding="utf8")
@@ -228,6 +229,41 @@ def crop_ecs():
             
     print(total_img_count)
     print(total_ann_count)
+
+def procee_data_gl():
+    #merge train and test sets
+    merge = False
+    cat_ids = range(13)
+    dst_dir = "data_gl/gpcb"
+    if merge:
+        
+        source_dir = 'data_gl/cx_data_gl/gastro_position_clasification_best'
+        
+        os.makedirs(dst_dir,exist_ok=True)
+        for cat_id in cat_ids:
+            os.makedirs(os.path.join(dst_dir,'all',str(cat_id)),exist_ok=True)
+            command1 = 'cp '+os.path.join(source_dir,'train',str(cat_id),'*')+' '+os.path.join(dst_dir,'all',str(cat_id))
+            os.system(command1)
+            command2 = 'cp '+os.path.join(source_dir,'test',str(cat_id),'*')+' '+os.path.join(dst_dir,'all',str(cat_id))
+            os.system(command2)
+    sample_folder = 'sample0'
+    sample_cat_ids = range(3,12)
+    count_sample = 0
+    count_all = 0
+    fold_size = 7
+    for cat_id in sample_cat_ids:
+        sample_dir = os.path.join(dst_dir,sample_folder,str(cat_id))
+        os.makedirs(sample_dir,exist_ok=True)
+        cat_sample_list = glob.glob(os.path.join(dst_dir,'all',str(cat_id),"*"))
+        for index , cat_sample in enumerate(cat_sample_list):
+            if index%fold_size==0:
+                command = command2 = 'cp '+cat_sample+' '+sample_dir
+                count_sample+=1
+                #os.system(command)
+            count_all+=1
+    print(count_all)
+    print(count_sample)
+
 if __name__=="__main__":
     #change_video_names2()
     #crop_wg(anno_dir = "/data2/qilei_chen/DATA/2021_2022gastro_cancers/2021_1/")
@@ -248,5 +284,6 @@ if __name__=="__main__":
     #crop_wg(anno_dir="data_gc/湘雅_远景_2021_2022_低级别_20230110")
     #crop_ecs()
     #crop_wg(anno_dir="data_ec/user11/201412_201912-148", _items_map={'食管癌':'EsophagealCancer',})
-    crop_wg(anno_dir="data_gc/gas12nips",_items_map={'gas12nip':'gas12nip',})
+    #crop_wg(anno_dir="data_gc/gas12nips",_items_map={'gas12nip':'gas12nip',})
+    procee_data_gl()
     
