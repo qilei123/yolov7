@@ -1106,7 +1106,20 @@ def extract_frames_for_eval():
     pos_sample_step = 20
     neg_count=0
     neg_sample_step = 50
+    
+    temp_json_coco = json.load(open('data_gc/videos_test/annotations/crop_instances_default_bk.json'))
+    
+    temp_img = temp_json_coco["images"][0]
+    temp_ann = temp_json_coco["annotations"][0]
+    
+    img_id = 0
+    ann_id = 0
+    
+    images = []
+    annotations = []
+    
     for video_dir in video_dirs_list:
+        print(video_dir)
         video = cv2.VideoCapture(video_dir)
         
         label_dir = os.path.join(os.path.dirname(video_dir),label_version,os.path.basename(video_dir)+".txt")  
@@ -1141,15 +1154,46 @@ def extract_frames_for_eval():
             if label:
                 pos_count+=1
                 if pos_count%pos_sample_step==0:
-                    cv2.imwrite(os.path.join(pos_save_dir,str(frame_id).zfill(7)+'.jpg'),frame)
+                    temp_img['id'] = img_id
+                    temp_img['file_name'] = os.path.join(os.path.basename(video_dir),'pos',str(frame_id).zfill(7)+'.jpg')
+                    temp_img['height'] = frame.shape[0]
+                    temp_img['width'] = frame.shape[1]
+                    images.append(temp_img.copy())
+                    
+                    temp_ann['bbox'] = [1,1,temp_img['width']-2,temp_img["height"]-2]
+                    temp_ann['id'] = ann_id
+                    temp_ann['image_id'] = img_id
+                    temp_ann['category_id'] = 1
+                    annotations.append(temp_ann.copy())
+                    
+                    #cv2.imwrite(os.path.join(pos_save_dir,str(frame_id).zfill(7)+'.jpg'),frame)
+                    img_id+=1
+                    ann_id+=1
             else:
                 neg_count+=1
                 if neg_count%neg_sample_step==0:
-                    cv2.imwrite(os.path.join(neg_save_dir,str(frame_id).zfill(7)+'.jpg'),frame)
+                    temp_img['id'] = img_id
+                    temp_img['file_name'] = os.path.join(os.path.basename(video_dir),'neg',str(frame_id).zfill(7)+'.jpg')
+                    temp_img['height'] = frame.shape[0]
+                    temp_img['width'] = frame.shape[1]
+                    images.append(temp_img.copy())
+                    
+                    temp_ann['bbox'] = [1,1,temp_img['width']-2,temp_img["height"]-2]
+                    temp_ann['id'] = ann_id
+                    temp_ann['image_id'] = img_id
+                    temp_ann['category_id'] = 0
+                    annotations.append(temp_ann.copy())
+                    #cv2.imwrite(os.path.join(neg_save_dir,str(frame_id).zfill(7)+'.jpg'),frame)
+                    img_id+=1
+                    ann_id+=1
             
             ret, frame = video.read() 
-            line = label_record.readline()       
+            line = label_record.readline()     
+    temp_json_coco['images'] = images
+    temp_json_coco['annotations'] = annotations
     
+    with open("data_gc/videos_test/xiehe2111_2205_eval_v3/annotations/crop_instances_default.json", "w") as f:
+        json.dump(temp_json_coco,f)
 if __name__ == '__main__':
     #process_videos()
     #process_videos_fp()
