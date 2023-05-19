@@ -2521,7 +2521,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         self.datasets_count.append(len(self.img_files))  
         
         repeat_time_gc_df_e50 = ['_rd',]
-        if False: #gc_df_e50挑选的纳入训练中
+        if True: #gc_df_e50挑选的纳入训练中
             append_fp_data_dir = "data_gc/gc_df_e50"
             
             if not test_mode:
@@ -2531,7 +2531,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         self.datasets_count.append(len(self.img_files))           
 
         repeat_time_gc_df_e70 = ['_rd',]
-        if False: #gc_df_e70挑选的纳入训练中
+        if True: #gc_df_e70挑选的纳入训练中
             append_fp_data_dir = "data_gc/gc_df_e70"
             
             if not test_mode:
@@ -2541,12 +2541,22 @@ class LoadCOCOv2(LoadImagesAndLabels):
         self.datasets_count.append(len(self.img_files))  
 
         repeat_time_gc_df_e100 = ['_rd',]
-        if False: #gc_df_e100挑选的纳入训练中
+        if True: #gc_df_e100挑选的纳入训练中
             append_fp_data_dir = "data_gc/gc_df_e100"
             
             if not test_mode:
                 for rt in repeat_time_gc_df_e100:
                     self.load_standard_gastro(append_fp_data_dir+"/gc_df"+str(rt),select_cats_id=[1,],cat_id_map={1:0})            
+
+        self.datasets_count.append(len(self.img_files))  
+        
+        repeat_time = 1
+        if True: #gastro_images_bubble_samples手动标注的气泡的纳入训练中
+            append_fp_data_dir = "data_gc/gastro_images_bubble_samples"
+            
+            if not test_mode:
+                for rt in range(repeat_time):
+                    self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:1})            
 
         self.datasets_count.append(len(self.img_files))  
 
