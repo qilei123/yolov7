@@ -2460,7 +2460,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         self.datasets_count.append(len(self.img_files))
         
         times_12zc = 1
-        cat_id = 1 #1代表分2类，2代表分三类
+        cat_id = 2 #1代表分2类，2代表分三类
         if True: #将带有十二指肠乳头的fp数据集纳入训练过程
             append_fp_data_dir = "data_gc/胃部高风险病变误报图片"
             if not test_mode:
@@ -2551,7 +2551,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         self.datasets_count.append(len(self.img_files))  
         
         repeat_time = 1
-        if True: #gastro_images_bubble_samples手动标注的气泡的纳入训练中
+        if False: #gastro_images_bubble_samples手动标注的气泡的纳入训练中
             append_fp_data_dir = "data_gc/gastro_images_bubble_samples"
             
             if not test_mode:
