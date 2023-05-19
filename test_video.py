@@ -61,6 +61,8 @@ def process_videos(_model_name='',_videos_dir='',
                    visualize_fn = False,
                    ):
 
+    label_version = 'v3'
+    
     gpu_id = 3
     if _gpu_id>=0:
         gpu_id = _gpu_id
@@ -109,7 +111,9 @@ def process_videos(_model_name='',_videos_dir='',
     for video_dir in sorted(video_list):
         print(video_dir)
         video = cv2.VideoCapture(video_dir)
-        positive_periods = get_positive_periods(video_dir+'.txt')
+        
+        label_dir = os.path.join(os.path.dirname(video_dir),label_version,os.path.basename(video_dir)+".txt")
+        positive_periods = get_positive_periods(label_dir)
 
         video_name = os.path.basename(video_dir)
         if visualize_fp:
@@ -926,7 +930,7 @@ def generate_fp_coco3():
 
 def generate_test_video_labels():
     
-    version = 'v2' #'v1
+    version = 'v3' #'v1
     
     videos_periods = open('data_gc/videos_test/video_labels_'+version+'.txt')
     
@@ -934,19 +938,22 @@ def generate_test_video_labels():
     
     line = videos_periods.readline()
     
+    neg_count = 0
+    pos_count = 0
+    
     while line:
         records = line.split('\t')
         
         if len(records) == 1:
             video_folder = records[0].replace("\n", "")
-            os.makedirs(os.path.join('data_gc/videos_test',video_folder,version))
+            os.makedirs(os.path.join('data_gc/videos_test',video_folder,version),exist_ok=True)
             video_folder = os.path.join('data_gc/videos_test',video_folder)#set video folder to the real relative one
         else:
             cap = cv2.VideoCapture(os.path.join(video_folder,records[0]))
             fps = cap.get(cv2.CAP_PROP_FPS)
             frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
             
-            video_label = open(os.path.join(video_folder,version,records[0]+'.txt'), "w")
+            #video_label = open(os.path.join(video_folder,version,records[0]+'.txt'), "w")
             
             periods = []
             
@@ -960,10 +967,16 @@ def generate_test_video_labels():
                 for period in periods:
                     if i>period[0] and i <period[1]:
                         label=1
+                if label:
+                    pos_count+=1
+                else:
+                    neg_count+=1
                 line_str = str(i+1) + " #" + str(label) + "\n"
-                video_label.write(line_str)        
+                #video_label.write(line_str)        
         
         line = videos_periods.readline()
+    print(pos_count)
+    print(neg_count)
 def generate_eval_on_videos():
     dataset_dir = '/home/ycao/DATASETS/gastro_cancer/videos_test'
     videos_dir = '/home/ycao/DATASETS/gastro_cancer/videos_test/xiehe2111_2205'
@@ -1056,9 +1069,15 @@ def process_videos_trains():
     #model_names = ['WJ_V1_with_mfp7-22-2-15',]
     #model_names = ['WJ_V1_with_mfp7-22-2-18',]
     #model_names = ['WJ_V1_with_mfp7-22-2-19','WJ_V1_with_mfp7-22-2-20','WJ_V1_with_mfp7-22-2-21',]
-    model_names = ['WJ_V1_with_mfp7-22-2-22',]
+    model_names = [#'WJ_V1_with_mfp7-22-2-22',
+                   'WJ_V1_with_mfp7-22-2-23',
+                   'WJ_V1_with_mfp7-22-2-23-2',
+                   'WJ_V1_with_mfp7-22-2-24',
+                   'WJ_V1_with_mfp7-22-2-25',
+                   'WJ_V1_with_mfp7-22-2-25-2',
+                   ]
     videos_dirs = ['data_gc/videos_test/xiehe2111_2205',
-                   #'data_gc/videos_test/十二指肠乳头视频片段',
+                   'data_gc/videos_test/十二指肠乳头视频片段',
                    ]
     model_pt_names = ["best",
                       #"best_f1",
@@ -1070,9 +1089,66 @@ def process_videos_trains():
                 process_videos(_model_name=model_name,
                                _videos_dir=videos_dir,
                                _model_pt_name=model_pt_name,
-                               _gpu_id = 2,
+                               _gpu_id = 0,
                                visualize_fp=True,
                                visualize_fn=True)
+
+def extract_frames_for_eval():
+    
+    label_version = 'v3'
+    
+    video_folder_dir = 'data_gc/videos_test/xiehe2111_2205'
+    
+    video_dirs_list = glob.glob(os.path.join(video_folder_dir,"*.mp4"))
+    #total pos 41829
+    #total neg 179275
+    pos_count=0
+    pos_sample_step = 20
+    neg_count=0
+    neg_sample_step = 50
+    for video_dir in video_dirs_list:
+        video = cv2.VideoCapture(video_dir)
+        
+        label_dir = os.path.join(os.path.dirname(video_dir),label_version,os.path.basename(video_dir)+".txt")  
+        
+        roi = None
+        if roi==None:
+            total_frames = video.get(cv2.CAP_PROP_FRAME_COUNT)
+            video.set(cv2.CAP_PROP_POS_FRAMES,int(total_frames/3))
+
+            ret, frame = video.read()
+            
+            video.set(cv2.CAP_PROP_POS_FRAMES,0)
+            
+            #frame = CropImg(frame,[10,10,1340,1070])
+
+            roi_frame, roi = CropImg(frame)     
+        
+        ret, frame = video.read()
+        label_record = open(label_dir)
+        
+        line = label_record.readline()
+        
+        pos_save_dir = os.path.join(os.path.dirname(video_dir),label_version,os.path.basename(video_dir),'pos')
+        neg_save_dir = os.path.join(os.path.dirname(video_dir),label_version,os.path.basename(video_dir),'neg')
+        os.makedirs(pos_save_dir,exist_ok=True)
+        os.makedirs(neg_save_dir,exist_ok=True)
+        
+        while ret and line:
+            frame = CropImg(frame,roi)
+            label = int(line.strip()[-1])
+            frame_id = int(line.strip().split()[0])
+            if label:
+                pos_count+=1
+                if pos_count%pos_sample_step==0:
+                    cv2.imwrite(os.path.join(pos_save_dir,str(frame_id).zfill(7)+'.jpg'),frame)
+            else:
+                neg_count+=1
+                if neg_count%neg_sample_step==0:
+                    cv2.imwrite(os.path.join(neg_save_dir,str(frame_id).zfill(7)+'.jpg'),frame)
+            
+            ret, frame = video.read() 
+            line = label_record.readline()       
     
 if __name__ == '__main__':
     #process_videos()
@@ -1089,6 +1165,6 @@ if __name__ == '__main__':
     #generate_fp_coco3()
     #generate_eval_on_videos()
     
-    process_videos_trains()
-    
+    #process_videos_trains()
+    extract_frames_for_eval()
     pass

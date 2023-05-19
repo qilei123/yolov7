@@ -72,11 +72,33 @@ def compare_between_2periods(gt_periods,pd_periods):
     
     return recall,precision
 
-def load_and_eval(_exp_name=''):
+def compare_between_2periods2(gt_periods,pd_periods):
+    
+    recalls = [0]*len(gt_periods)
+    
+    gt_IOUs = [0]*len(gt_periods)
+    
+    precisions = [0]*len(pd_periods)
+    
+    pd_IOUs = [0]*len(pd_periods)
+    
+    for pd_index, pd_period in enumerate(pd_periods):
+        for gt_index, gt_period in enumerate(gt_periods):
+            IOU, pd_IOU, gt_IOU = periods_IOU(pd_period,gt_period)
+            gt_IOUs[gt_index] += gt_IOU
+            pd_IOUs[pd_index] += pd_IOU
+            
+    recall = [sum(gt_IOU>0.1 for gt_IOU in gt_IOUs),len(gt_IOUs)]
+
+    precision = [sum(pd_IOU>0.1 for pd_IOU in pd_IOUs),len(pd_IOUs)]
+    
+    return recall,precision
+
+def load_and_eval(_exp_name='',gt_vision='v3'):
 
     data_dir = 'data_gc/videos_test/'
     
-    gt_files = sorted(glob.glob(os.path.join(data_dir,"xiehe2111_2205/*.mp4.txt")))
+    gt_files = sorted(glob.glob(os.path.join(data_dir,"xiehe2111_2205/"+gt_vision+"/*.mp4.txt")))
     
     #exp_name = 'WJ_V1_with_mfp7x-22-2_ppsa_best_roifix'
     #exp_name = 'WJ_V1_with_mfp7x-22-2_best_roifix'
@@ -88,9 +110,9 @@ def load_and_eval(_exp_name=''):
     
     pd_files = sorted(glob.glob(os.path.join(data_dir,'xiehe2111_2205_'+exp_name+'/*.mp4.txt')))
     
-    A_recalls = 0
+    A_recalls = [0,0.0001]
     
-    A_precisions = 0
+    A_precisions = [0,0.0001]
     
     for gt_file,pd_file in zip(gt_files,pd_files):
         
@@ -99,20 +121,22 @@ def load_and_eval(_exp_name=''):
         gt_periods = periods_filter(get_positive_periods(gt_file))
         pd_periods = periods_filter(get_positive_periods(pd_file),2)
         
-        r,p = compare_between_2periods(gt_periods,pd_periods)
+        r,p = compare_between_2periods2(gt_periods,pd_periods)
         
-        A_recalls += r
+        A_recalls[0] += r[0]
+        A_recalls[1] += r[1]
         
-        A_precisions += p
+        A_precisions[0] += p[0]
+        A_precisions[1] += p[1]
         
-    A_recalls/=len(gt_files)
-    A_precisions/=len(pd_files)
+    #A_recalls/=len(gt_files)
+    #A_precisions/=len(pd_files)
         
-    print(A_recalls)
-    print(A_precisions)
+    print("recall:{0}".format(A_recalls[0]/A_recalls[1]))
+    print("precision:{0}".format(A_precisions[0]/A_precisions[1]))
 
 def load_and_eval_list():
-    
+    gt_vision = 'v3'
     folders_list = ['WJ_V1_with_mfp7-22-2_retrain_recovery_best_roifix_0.3',
                     'WJ_V1_with_mfp7-22-2_retrain_recovery1_best_roifix_0.3',
                     'WJ_V1_with_mfp7-22-2-0_best_roifix_0.3',
@@ -141,7 +165,7 @@ def load_and_eval_list():
                      'WJ_V1_with_mfp7-22-2-21_best_roifix_0.3',
                      'WJ_V1_with_mfp7-22-2-22_best_f2_roifix_0.3',]
     for folder in folders_list:
-        load_and_eval(folder)
+        load_and_eval(folder,gt_vision)
 
 def generate_eval_images_from_videos():
     data_dir = 'data_gc/videos_test/'
