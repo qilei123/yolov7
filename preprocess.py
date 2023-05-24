@@ -264,6 +264,71 @@ def procee_data_gl():
     print(count_all)
     print(count_sample)
 
+
+min_value = 0.0000001
+
+def fx(r,p,x):
+    return (1+x**2)*r*p/(r+(x**2)*p+min_value)
+
+
+def get_best():
+    record_file_dir = '27_yolov7_output/WJ_V1_with_mfp7-22-2-28-2-v/yolov7-wj_v1_with_fp/results.txt'
+
+    record_file = open(record_file_dir)
+    
+    line = record_file.readline()
+    
+    bf05,bf1,bf2 = 0,0,0
+    bf05_e,bf1_e,bf2_e = 0,0,0
+    
+    br = 0
+    br_e = 0
+    
+    br_p = 0
+    br_p_e = 0
+    
+    e_count = 0
+    while line:
+        
+        if line.startswith("videos"):
+            
+            eles = line.strip().split("\t")
+            
+            recall = float(eles[0].split(':')[1])
+            precision = float(eles[1].split(':')[1])
+            
+            bf05 = bf05 if bf05>fx(recall,precision,0.5) else fx(recall,precision,0.5)
+            if bf05==fx(recall,precision,0.5):
+                bf05_e = e_count
+            
+            bf1 = bf1 if bf1>fx(recall,precision,1) else fx(recall,precision,1)
+            if bf1==fx(recall,precision,1):
+                bf1_e = e_count
+            
+            bf2 = bf2 if bf2>fx(recall,precision,2) else fx(recall,precision,2)
+            if bf2==fx(recall,precision,2):
+                bf2_e = e_count
+                
+                
+            if br<recall:
+                br = recall
+                br_e = e_count
+            
+            a = 0.99    
+            if br_p<a*recall+(1-a)*precision:
+                br_p = a*recall+(1-a)*precision
+                br_p_e = e_count
+            
+            e_count += 1
+        
+            if recall>0.25 and precision>0.81:
+                print(e_count)
+    
+            #print('best_score:{0};{1};{2};{3},{4}'.format(bf05,bf1,bf2,br,br_p))
+            #print('best:{0};{1};{2};{3};{4}'.format(bf05_e,bf1_e,bf2_e,br_e,br_p_e))
+        
+        line = record_file.readline()
+    
 if __name__=="__main__":
     #change_video_names2()
     #crop_wg(anno_dir = "/data2/qilei_chen/DATA/2021_2022gastro_cancers/2021_1/")
@@ -285,5 +350,6 @@ if __name__=="__main__":
     #crop_ecs()
     #crop_wg(anno_dir="data_ec/user11/201412_201912-148", _items_map={'食管癌':'EsophagealCancer',})
     #crop_wg(anno_dir="data_gc/gas12nips",_items_map={'gas12nip':'gas12nip',})
-    procee_data_gl()
+    #procee_data_gl()
+    get_best()
     

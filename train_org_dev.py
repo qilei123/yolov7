@@ -28,7 +28,7 @@ from utils.autoanchor import check_anchors
 from utils.datasets import create_dataloader
 from utils.general import labels_to_class_weights, increment_path, labels_to_image_weights, init_seeds, \
     fitness, strip_optimizer, get_latest_run, check_dataset, check_file, check_git_status, check_img_size, \
-    check_requirements, print_mutation, set_logging, one_cycle, colorstr ,fitness_f1, fitness_f2, fitness_f05, fitness_r
+    check_requirements, print_mutation, set_logging, one_cycle, colorstr ,fitness_f1, fitness_f2, fitness_f05, fitness_r, fitness_p
 from utils.google_utils import attempt_download
 from utils.loss import ComputeLoss, ComputeLossOTA
 from utils.plots import plot_images, plot_labels, plot_results, plot_evolution
@@ -56,6 +56,10 @@ def train(hyp, opt, device, tb_writer=None):
     best_f05 = wdir / 'best_f05.pt'
     
     best_r = wdir / "best_r.pt"
+    
+    best_vf1 = wdir / 'best_vf1.pt'
+    
+    best_vf2 = wdir / 'best_vf2.pt'
     
     results_file = save_dir / 'results.txt'
 
@@ -103,9 +107,11 @@ def train(hyp, opt, device, tb_writer=None):
     else:
         model = Model(opt.cfg, ch=3, nc=nc, anchors=hyp.get('anchors')).to(device)  # create
     with torch_distributed_zero_first(rank):
-        check_dataset(data_dict)  # check
+        #check_dataset(data_dict)  # check
+        pass
     train_path = data_dict['train']
-    test_path = data_dict['val']
+    test_path = data_dict['test']
+    val_path = data_dict['val']
 
     # Freeze
     freeze = [f'model.{x}.' for x in (freeze if len(freeze) > 1 else range(freeze[0]))]  # parameter names to freeze (full or partial)
@@ -211,6 +217,7 @@ def train(hyp, opt, device, tb_writer=None):
     # Resume
     start_epoch, best_fitness = 0, 0.0
     best_fitness1,best_fitness2,best_fitness05, best_recall = 0.0,0.0,0.0,0.0
+    vbest_fitness1,vbest_fitness2 = 0,0
     if pretrained:
         # Optimizer
         if ckpt['optimizer'] is not None:
@@ -262,7 +269,12 @@ def train(hyp, opt, device, tb_writer=None):
 
     # Process 0
     if rank in [-1, 0]:
-        testloader = create_dataloader(test_path, imgsz_test, batch_size, gs, opt,  # testloader
+        testloader = create_dataloader(test_path, imgsz_test, batch_size*2, gs, opt,  # testloader
+                                       hyp=hyp, cache=opt.cache_images and not opt.notest, rect=True, rank=-1,
+                                       world_size=opt.world_size, workers=opt.workers,
+                                       pad=0.5, prefix=colorstr('test: '))[0]
+        
+        valloader = create_dataloader(val_path, imgsz_test, batch_size*2, gs, opt,  # valloader
                                        hyp=hyp, cache=opt.cache_images and not opt.notest, rect=True, rank=-1,
                                        world_size=opt.world_size, workers=opt.workers,
                                        pad=0.5, prefix=colorstr('val: '))[0]
@@ -442,6 +454,21 @@ def train(hyp, opt, device, tb_writer=None):
                                                  v5_metric=opt.v5_metric,
                                                  c_criteria=opt.c_criteria,
                                                  results_file=results_file)
+                results_v, maps_v, times_v = test.vtest(data_dict,
+                                                 batch_size=batch_size*2,
+                                                 imgsz=imgsz_test,
+                                                 model=ema.ema,
+                                                 single_cls=opt.single_cls,
+                                                 dataloader=valloader,
+                                                 save_dir=save_dir,
+                                                 verbose=nc < 50 and final_epoch,
+                                                 plots=plots and final_epoch,
+                                                 wandb_logger=wandb_logger,
+                                                 compute_loss=compute_loss,
+                                                 is_coco=is_coco,
+                                                 v5_metric=opt.v5_metric,
+                                                 c_criteria=opt.c_criteria,
+                                                 results_file=results_file)
             
             # Write
             with open(results_file, 'a') as f:
@@ -481,6 +508,25 @@ def train(hyp, opt, device, tb_writer=None):
             if Rc > best_recall:
                 best_recall = Rc
             
+            vf1 = fitness_f1(np.array(results_v).reshape(1, -1))
+            
+            if vf1 > vbest_fitness1:
+                vbest_fitness1 = vf1
+                
+            vf2 = fitness_f2(np.array(results_v).reshape(1, -1))
+            
+            if vf2 > vbest_fitness2:
+                vbest_fitness2 = vf2  
+                
+            vR = fitness_r(np.array(results_v).reshape(1,-1))  
+            
+            vP = fitness_p(np.array(results_v).reshape(1,-1)) 
+            
+            save_epoch = False       
+            
+            if vR>0.26 and vP>0.81:
+                save_epoch = True
+                
             wandb_logger.end_epoch(best_result=best_fitness == fi)
 
             # Save model
@@ -501,43 +547,59 @@ def train(hyp, opt, device, tb_writer=None):
                 if best_fitness1 == f1:
                     best_f1_epoch_index = epoch
                     ckpt['best_fitness1'] = best_fitness1
-                    torch.save(ckpt, best_f1)
+                    #torch.save(ckpt, best_f1)
 
                 if best_fitness2 == f2:
                     best_f2_epoch_index = epoch
                     ckpt['best_fitness2'] = best_fitness2
-                    torch.save(ckpt, best_f2)
+                    #torch.save(ckpt, best_f2)
                     
                 if best_fitness05 == f05:
                     best_f05_epoch_index = epoch
                     ckpt['best_fitness05'] = best_fitness05
-                    torch.save(ckpt, best_f05)
+                    #torch.save(ckpt, best_f05)
 
                 if best_recall == Rc:
                     best_r_epoch_index = epoch
                     ckpt['best_recall'] = best_recall
-                    torch.save(ckpt, best_r)                
+                    #torch.save(ckpt, best_r)      
+                    
+                if vbest_fitness1 == vf1:
+                    best_vf1_epoch_index = epoch
+                    ckpt['best_vf1'] = vbest_fitness1
+                    torch.save(ckpt, best_vf1)   
+                    
+                if vbest_fitness2 == vf2:
+                    best_vf2_epoch_index = epoch
+                    ckpt['best_vf2'] = vbest_fitness2
+                    torch.save(ckpt, best_vf2)                                                    
                 
                 if best_fitness == fi:
                     best_epoch_index = epoch
                     torch.save(ckpt, best)
                 if (best_fitness == fi) and (epoch >= 200):
-                    torch.save(ckpt, wdir / 'best_{:03d}.pt'.format(epoch))
+                    pass
+                    #torch.save(ckpt, wdir / 'best_{:03d}.pt'.format(epoch))
                 if epoch == 0:
-                    torch.save(ckpt, wdir / 'epoch_{:03d}.pt'.format(epoch))
+                    pass
+                    #torch.save(ckpt, wdir / 'epoch_{:03d}.pt'.format(epoch))
                 elif ((epoch+1) % 25) == 0:
                     pass
                     #torch.save(ckpt, wdir / 'epoch_{:03d}.pt'.format(epoch))
                 elif epoch >= (epochs-5):
                     pass
                     #torch.save(ckpt, wdir / 'epoch_{:03d}.pt'.format(epoch))
+                
+                if save_epoch:
+                    strip_optimizer(last,wdir / 'epoch_{:03d}.pt'.format(epoch))    
+                
                 if wandb_logger.wandb:
                     if ((epoch + 1) % opt.save_period == 0 and not final_epoch) and opt.save_period != -1:
                         wandb_logger.log_model(
                             last.parent, opt, epoch, fi, best_model=best_fitness == fi)
                 del ckpt
-        print('best_epoch_index:{0},best_f1_epoch_index:{1},best_f2_epoch_index:{2},best_f05_epoch_index:{3},best_r_epoch_index:{4}'
-              .format(best_epoch_index,best_f1_epoch_index,best_f2_epoch_index,best_f05_epoch_index,best_r_epoch_index))
+        print('best_epoch_index:{0},best_f1_epoch_index:{1},best_f2_epoch_index:{2},best_f05_epoch_index:{3},best_r_epoch_index:{4},best_vf1:{5},best_vf2:{6}'
+              .format(best_epoch_index,best_f1_epoch_index,best_f2_epoch_index,best_f05_epoch_index,best_r_epoch_index,best_vf1_epoch_index,best_vf2_epoch_index))
         # end epoch ----------------------------------------------------------------------------------------------------
     # end training
     if rank in [-1, 0]:

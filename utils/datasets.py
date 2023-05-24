@@ -1758,7 +1758,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
         self.datasets_count = []#按顺序记录每个数据集的个数
         
         path = os.path.basename(path).replace("_", "/")
-        coco = COCO(self.check_anns_dir(path)) 
+        
         
         data_root = Path(path).parent
         images_root = os.path.join(data_root,'train/images')
@@ -1775,163 +1775,61 @@ class LoadCOCOv2(LoadImagesAndLabels):
         test_mode = True
         if 'train' in os.path.basename(path):
             test_mode = False
-
-        if strategy==1:#use others only
-            self.cls_names = ['cancer','others']
-            if self.cls_names:
-                select_cats_id = coco.getCatIds(catNms=self.cls_names)
-            else:
-                select_cats_id = coco.getCatIds()
-
-            for new_cat_id,cat_id in enumerate(select_cats_id):
-                self.cat_id_map[cat_id] = new_cat_id
-
-            if test_mode:
-                self.cat_id_map = {3:0}
-            else:
-                self.cat_id_map = {3:1,5:0}
-
-        elif strategy==2:#use all others as fp
-            self.cls_names = ['cancer','others','erosive','ulcer','hemorrhage']
-            if self.cls_names:
-                select_cats_id = coco.getCatIds(catNms=self.cls_names)
-            else:
-                select_cats_id = coco.getCatIds()
-
-            # low_level is 0, all others are 1
-            for new_cat_id,cat_id in enumerate(select_cats_id):
-                self.cat_id_map[cat_id] = new_cat_id
-
-            if test_mode:
-                self.cat_id_map = {1:1,2:1,3:0}
-            else:
-                self.cat_id_map = {1:1,2:1,3:1,4:1,5:0}
-            
-        if False:#抛弃原先的数据载入方式
-            for ImgId in coco.getImgIds():#协和2015-2021年数据+zz_allothers
-
-                img = coco.loadImgs([ImgId])[0]
-                if not os.path.exists(self.check_img_dir(os.path.join(images_root,img['file_name']))):
-                    print(os.path.join(images_root,img['file_name']))
-                    continue
-                
-                #assert img['width'] == img['roi'][2]-img["roi"][0], "annotation error"
-                #assert img['height'] == img['roi'][3]-img["roi"][1], "annotation error"
-
-                img_width,img_height = img['width'],img['height']
-
-                annIds =  coco.getAnnIds(ImgId)
-                anns = coco.loadAnns(annIds)
-
-                boxes = []
-                segs = []
-                for ann in anns:
-                    if ann['category_id'] in select_cats_id:
-                        
-                        box = [self.cat_id_map[ann['category_id']],
-                                (ann['bbox'][0]+ann['bbox'][2]/2)/img_width,
-                                (ann['bbox'][1]+ann['bbox'][3]/2)/img_height,
-                                ann['bbox'][2]/img_width,
-                                ann['bbox'][3]/img_height]
-                        '''
-                        box = []
-                        box.append(cat_id_map[ann['category_id']])
-                        '''
-                        seg = []
-                        #seg.append(self.cat_id_map[ann['category_id']])
-
-                        #ann_segmentation_minrect = seg2minrect(ann['segmentation'][0])
-                        if 'segmentation' in ann and len(ann['segmentation']):
-                            for coord_index,coord in enumerate(ann['segmentation'][0]):
-                                if coord_index%2==1:
-                                    
-                                    #box.append(ann_segmentation_minrect[coord_index-1]/img_width)
-                                    #box.append(coord/img_height)
-
-                                    seg.append(ann['segmentation'][0][coord_index-1]/img_width)
-                                    seg.append(coord/img_height)
-
-                                    #box.append(ann_segmentation_minrect[coord_index-1])
-                                    #box.append(coord)
-
-                                    #seg.append(ann['segmentation'][0][coord_index-1])
-                                    #seg.append(coord)
-                        
-                        boxes.append(box)
-                        segs.append(np.array(seg, dtype=np.float32).reshape(-1, 2))
-
-                if len(boxes)>0:
-                    self.instance_n+=len(boxes)
-                    self.labels.append(np.array(boxes, dtype=np.float64))
-                    self.shapes.append((img_width,img_height))
-                    self.segments.append(segs)
-                    self.img_files.append(self.check_img_dir(os.path.join(images_root,img['file_name'])))
-                #else: #这里先不考虑空图片
-                #    self.labels.append(np.zeros((0, 5), dtype=np.float32))
-            
-            #print(len(self.img_files))
-            # Read cache
-            #[cache.pop(k) for k in ('hash', 'version', 'msgs')]  # remove items
-            #labels, shapes, self.segments = zip(*cache.values())
-            #self.labels = list(labels)
-            
-        times_tp = 1
-        if True:#协和2015-2021年数据+zz_allothers
-            data_list= ['data_gc/gastro_cancer_v66/annotations/_data2_zzhang_annotation_erosiveulcer_fine_trainfp0927.json',
-                        'data_gc/gastro_cancer_v66/annotations/_data2_zzhang_annotation_erosiveulcer_fine_test0928.json']
-            if test_mode:
-                self.load_standard_gastro(data_list[1],select_cats_id=[3],cat_id_map={3:0})
-            else:
-                self.load_standard_gastro(data_list[1],select_cats_id=[1,2],cat_id_map={1:1,2:1})
-                
-                self.load_standard_gastro(data_list[0],cat_id_map={1:1,2:1,3:1,4:1,5:0})
-                
-                for i in range(times_tp-1):
-                    self.load_standard_gastro(data_list[0],select_cats_id=[5],cat_id_map={5:0}) #load more tp samples
-                
-                #self.load_standard_gastro(data_list[0],select_cats_id=[5],cat_id_map={5:0}) #load more tp samples
-                
-                #self.load_standard_gastro(data_list[0],select_cats_id=[5],cat_id_map={5:0}) #load more tp samples
         
-        self.datasets_count.append(len(self.img_files))
+        
+        val_mode = False    
+        if 'val' in os.path.basename(path):
+            val_mode = True
+            
+        repeat_time = 1
+        if val_mode: #val mode to test on images extracted from the videos
+            append_fp_data_dir = "data_gc/videos_test/xiehe2111_2205_eval_v3"
+
+            for rt in range(repeat_time):
+                self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,2],cat_id_map={1:0,2:1})            
+
+            self.datasets_count.append(len(self.img_files)) 
+        else:
+            coco = COCO(self.check_anns_dir(path)) 
+            if strategy==1:#use others only
+                self.cls_names = ['cancer','others']
+                if self.cls_names:
+                    select_cats_id = coco.getCatIds(catNms=self.cls_names)
+                else:
+                    select_cats_id = coco.getCatIds()
+
+                for new_cat_id,cat_id in enumerate(select_cats_id):
+                    self.cat_id_map[cat_id] = new_cat_id
+
+                if test_mode:
+                    self.cat_id_map = {3:0}
+                else:
+                    self.cat_id_map = {3:1,5:0}
+
+            elif strategy==2:#use all others as fp
+                self.cls_names = ['cancer','others','erosive','ulcer','hemorrhage']
+                if self.cls_names:
+                    select_cats_id = coco.getCatIds(catNms=self.cls_names)
+                else:
+                    select_cats_id = coco.getCatIds()
+
+                # low_level is 0, all others are 1
+                for new_cat_id,cat_id in enumerate(select_cats_id):
+                    self.cat_id_map[cat_id] = new_cat_id
+
+                if test_mode:
+                    self.cat_id_map = {1:1,2:1,3:0}
+                else:
+                    self.cat_id_map = {1:1,2:1,3:1,4:1,5:0}
                 
-        times_tp = 2
-        if True:#load tp dataset from 2021 and 2022 xiangya videos
-            
-            append_datas = ["/data2/qilei_chen/DATA/2021_2022gastro_cancers/2021_1",
-                            "/data2/qilei_chen/DATA/2021_2022gastro_cancers/2021_2",
-                            "/data2/qilei_chen/DATA/2021_2022gastro_cancers/2022_1",
-                            "/data2/qilei_chen/DATA/2021_2022gastro_cancers/2022_2"]
-            
-            append_more_from_videos = ['20220608_120950_01_r02_olbs290_w',
-                                        '20220616_162654_01_r02_olbs290_w',
-                                        '20220621_121616_01_r09_olbs290_w',
-                                        '20220627_174521_01_r09_olbs290_w'] #特殊逻辑，将这4段视频中获得的图片加入到训练集合中
-            
-            def is_append_more(img_name):
-                for append_more_from_video in append_more_from_videos:
-                    if append_more_from_video in img_name:
-                        return True
-            
-            if strategy==1:
-                select_cats_id = [1]
-                self.cat_id_map = {1:0}
-            elif strategy==2:
-                select_cats_id = [1,2,3]
-                self.cat_id_map = {1:0,2:1,3:1}
-            if test_mode:
-                select_cats_id = [1,]
-                images_root = append_datas[3]
-                coco = COCO(self.check_anns_dir(os.path.join(images_root,'annotations/crop_instances_default.json')))
-                for ImgId in coco.getImgIds():
+            if False:#抛弃原先的数据载入方式
+                for ImgId in coco.getImgIds():#协和2015-2021年数据+zz_allothers
 
                     img = coco.loadImgs([ImgId])[0]
-                    if not os.path.exists(self.check_img_dir(os.path.join(images_root,"crop_images",img['file_name']))):
-                        print(os.path.join(images_root,"crop_images",img['file_name']))
+                    if not os.path.exists(self.check_img_dir(os.path.join(images_root,img['file_name']))):
+                        print(os.path.join(images_root,img['file_name']))
                         continue
                     
-                    if is_append_more(os.path.basename(img['file_name'])):
-                        continue
                     #assert img['width'] == img['roi'][2]-img["roi"][0], "annotation error"
                     #assert img['height'] == img['roi'][3]-img["roi"][1], "annotation error"
 
@@ -1982,10 +1880,63 @@ class LoadCOCOv2(LoadImagesAndLabels):
                         self.labels.append(np.array(boxes, dtype=np.float64))
                         self.shapes.append((img_width,img_height))
                         self.segments.append(segs)
-                        self.img_files.append(self.check_img_dir(os.path.join(images_root,"crop_images",img['file_name'])))
-            else:
-                for append_data in append_datas[:4]*times_tp: #+append_datas[:3]: # repeat the data in the training process
-                    images_root = append_data
+                        self.img_files.append(self.check_img_dir(os.path.join(images_root,img['file_name'])))
+                    #else: #这里先不考虑空图片
+                    #    self.labels.append(np.zeros((0, 5), dtype=np.float32))
+                
+                #print(len(self.img_files))
+                # Read cache
+                #[cache.pop(k) for k in ('hash', 'version', 'msgs')]  # remove items
+                #labels, shapes, self.segments = zip(*cache.values())
+                #self.labels = list(labels)
+                
+            times_tp = 1
+            if True:#协和2015-2021年数据+zz_allothers
+                data_list= ['data_gc/gastro_cancer_v66/annotations/_data2_zzhang_annotation_erosiveulcer_fine_trainfp0927.json',
+                            'data_gc/gastro_cancer_v66/annotations/_data2_zzhang_annotation_erosiveulcer_fine_test0928.json']
+                if test_mode:
+                    self.load_standard_gastro(data_list[1],select_cats_id=[3],cat_id_map={3:0})
+                else:
+                    self.load_standard_gastro(data_list[1],select_cats_id=[1,2],cat_id_map={1:1,2:1})
+                    
+                    self.load_standard_gastro(data_list[0],cat_id_map={1:1,2:1,3:1,4:1,5:0})
+                    
+                    for i in range(times_tp-1):
+                        self.load_standard_gastro(data_list[0],select_cats_id=[5],cat_id_map={5:0}) #load more tp samples
+                    
+                    #self.load_standard_gastro(data_list[0],select_cats_id=[5],cat_id_map={5:0}) #load more tp samples
+                    
+                    #self.load_standard_gastro(data_list[0],select_cats_id=[5],cat_id_map={5:0}) #load more tp samples
+            
+            self.datasets_count.append(len(self.img_files))
+                    
+            times_tp = 2
+            if True:#load tp dataset from 2021 and 2022 xiangya videos
+                
+                append_datas = ["/data2/qilei_chen/DATA/2021_2022gastro_cancers/2021_1",
+                                "/data2/qilei_chen/DATA/2021_2022gastro_cancers/2021_2",
+                                "/data2/qilei_chen/DATA/2021_2022gastro_cancers/2022_1",
+                                "/data2/qilei_chen/DATA/2021_2022gastro_cancers/2022_2"]
+                
+                append_more_from_videos = ['20220608_120950_01_r02_olbs290_w',
+                                            '20220616_162654_01_r02_olbs290_w',
+                                            '20220621_121616_01_r09_olbs290_w',
+                                            '20220627_174521_01_r09_olbs290_w'] #特殊逻辑，将这4段视频中获得的图片加入到训练集合中
+                
+                def is_append_more(img_name):
+                    for append_more_from_video in append_more_from_videos:
+                        if append_more_from_video in img_name:
+                            return True
+                
+                if strategy==1:
+                    select_cats_id = [1]
+                    self.cat_id_map = {1:0}
+                elif strategy==2:
+                    select_cats_id = [1,2,3]
+                    self.cat_id_map = {1:0,2:1,3:1}
+                if test_mode:
+                    select_cats_id = [1,]
+                    images_root = append_datas[3]
                     coco = COCO(self.check_anns_dir(os.path.join(images_root,'annotations/crop_instances_default.json')))
                     for ImgId in coco.getImgIds():
 
@@ -1994,9 +1945,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
                             print(os.path.join(images_root,"crop_images",img['file_name']))
                             continue
                         
-                        if (append_data==append_datas[3]) and (not is_append_more(os.path.basename(img['file_name']))):
-                            continue                        
-                        
+                        if is_append_more(os.path.basename(img['file_name'])):
+                            continue
                         #assert img['width'] == img['roi'][2]-img["roi"][0], "annotation error"
                         #assert img['height'] == img['roi'][3]-img["roi"][1], "annotation error"
 
@@ -2048,154 +1998,321 @@ class LoadCOCOv2(LoadImagesAndLabels):
                             self.shapes.append((img_width,img_height))
                             self.segments.append(segs)
                             self.img_files.append(self.check_img_dir(os.path.join(images_root,"crop_images",img['file_name'])))
-        
-        self.datasets_count.append(len(self.img_files))
+                else:
+                    for append_data in append_datas[:4]*times_tp: #+append_datas[:3]: # repeat the data in the training process
+                        images_root = append_data
+                        coco = COCO(self.check_anns_dir(os.path.join(images_root,'annotations/crop_instances_default.json')))
+                        for ImgId in coco.getImgIds():
+
+                            img = coco.loadImgs([ImgId])[0]
+                            if not os.path.exists(self.check_img_dir(os.path.join(images_root,"crop_images",img['file_name']))):
+                                print(os.path.join(images_root,"crop_images",img['file_name']))
+                                continue
+                            
+                            if (append_data==append_datas[3]) and (not is_append_more(os.path.basename(img['file_name']))):
+                                continue                        
+                            
+                            #assert img['width'] == img['roi'][2]-img["roi"][0], "annotation error"
+                            #assert img['height'] == img['roi'][3]-img["roi"][1], "annotation error"
+
+                            img_width,img_height = img['width'],img['height']
+
+                            annIds =  coco.getAnnIds(ImgId)
+                            anns = coco.loadAnns(annIds)
+
+                            boxes = []
+                            segs = []
+                            for ann in anns:
+                                if ann['category_id'] in select_cats_id:
+                                    
+                                    box = [self.cat_id_map[ann['category_id']],
+                                            (ann['bbox'][0]+ann['bbox'][2]/2)/img_width,
+                                            (ann['bbox'][1]+ann['bbox'][3]/2)/img_height,
+                                            ann['bbox'][2]/img_width,
+                                            ann['bbox'][3]/img_height]
+                                    '''
+                                    box = []
+                                    box.append(cat_id_map[ann['category_id']])
+                                    '''
+                                    seg = []
+                                    #seg.append(self.cat_id_map[ann['category_id']])
+
+                                    #ann_segmentation_minrect = seg2minrect(ann['segmentation'][0])
+                                    if 'segmentation' in ann and len(ann['segmentation']):
+                                        for coord_index,coord in enumerate(ann['segmentation'][0]):
+                                            if coord_index%2==1:
+                                                
+                                                #box.append(ann_segmentation_minrect[coord_index-1]/img_width)
+                                                #box.append(coord/img_height)
+
+                                                seg.append(ann['segmentation'][0][coord_index-1]/img_width)
+                                                seg.append(coord/img_height)
+
+                                                #box.append(ann_segmentation_minrect[coord_index-1])
+                                                #box.append(coord)
+
+                                                #seg.append(ann['segmentation'][0][coord_index-1])
+                                                #seg.append(coord)
+                                    
+                                    boxes.append(box)
+                                    segs.append(np.array(seg, dtype=np.float32).reshape(-1, 2))
+
+                            if len(boxes)>0:
+                                self.instance_n+=len(boxes)
+                                self.labels.append(np.array(boxes, dtype=np.float64))
+                                self.shapes.append((img_width,img_height))
+                                self.segments.append(segs)
+                                self.img_files.append(self.check_img_dir(os.path.join(images_root,"crop_images",img['file_name'])))
             
-        if True:#load the fp data from 2021 and 2022 xiangya videos
-            append_fp_datas = ["/data2/qilei_chen/DATA/2021_2022gastro_cancers/2021_videos/fp_instances_default_train.json",
-                            "/data2/qilei_chen/DATA/2021_2022gastro_cancers/2022_videos/fp_instances_default_train.json",
-                            "/data2/qilei_chen/DATA/2021_2022gastro_cancers/2022_videos/fp_instances_default_test.json"]
+            self.datasets_count.append(len(self.img_files))
+                
+            if True:#load the fp data from 2021 and 2022 xiangya videos
+                append_fp_datas = ["/data2/qilei_chen/DATA/2021_2022gastro_cancers/2021_videos/fp_instances_default_train.json",
+                                "/data2/qilei_chen/DATA/2021_2022gastro_cancers/2022_videos/fp_instances_default_train.json",
+                                "/data2/qilei_chen/DATA/2021_2022gastro_cancers/2022_videos/fp_instances_default_test.json"]
 
-            select_cats_id = [1,]
-            self.cat_id_map = {1:1}
-            if test_mode:
-                if False:
-                    images_root = os.path.dirname(append_fp_datas[2])
-                    coco = COCO(self.check_anns_dir(os.path.join(images_root,'fp_instances_default_test.json')))
+                select_cats_id = [1,]
+                self.cat_id_map = {1:1}
+                if test_mode:
+                    if False:
+                        images_root = os.path.dirname(append_fp_datas[2])
+                        coco = COCO(self.check_anns_dir(os.path.join(images_root,'fp_instances_default_test.json')))
+                        for ImgId in coco.getImgIds():
+
+                            img = coco.loadImgs([ImgId])[0]
+                            image_dir = self.check_img_dir(os.path.join(images_root,img['file_name']))
+                            if not os.path.exists(image_dir):
+                                print(image_dir)
+                                continue
+                            
+                            #assert img['width'] == img['roi'][2]-img["roi"][0], "annotation error"
+                            #assert img['height'] == img['roi'][3]-img["roi"][1], "annotation error"
+
+                            img_width,img_height = img['width'],img['height']
+
+                            annIds =  coco.getAnnIds(ImgId)
+                            anns = coco.loadAnns(annIds)
+
+                            boxes = []
+                            segs = []
+                            for ann in anns:
+                                if ann['category_id'] in select_cats_id:
+                                    
+                                    box = [self.cat_id_map[ann['category_id']],
+                                            (ann['bbox'][0]+ann['bbox'][2]/2)/img_width,
+                                            (ann['bbox'][1]+ann['bbox'][3]/2)/img_height,
+                                            ann['bbox'][2]/img_width,
+                                            ann['bbox'][3]/img_height]
+                                    seg = []
+                                    #seg.append(self.cat_id_map[ann['category_id']])
+
+                                    #ann_segmentation_minrect = seg2minrect(ann['segmentation'][0])
+                                    if 'segmentation' in ann and len(ann['segmentation']):
+                                        for coord_index,coord in enumerate(ann['segmentation'][0]):
+                                            if coord_index%2==1:
+                                                
+                                                #box.append(ann_segmentation_minrect[coord_index-1]/img_width)
+                                                #box.append(coord/img_height)
+
+                                                seg.append(ann['segmentation'][0][coord_index-1]/img_width)
+                                                seg.append(coord/img_height)
+
+                                                #box.append(ann_segmentation_minrect[coord_index-1])
+                                                #box.append(coord)
+
+                                                #seg.append(ann['segmentation'][0][coord_index-1])
+                                                #seg.append(coord)
+                                    
+                                    boxes.append(box)
+                                    segs.append(np.array(seg, dtype=np.float32).reshape(-1, 2))
+
+                            if len(boxes)>0:
+                                self.instance_n+=len(boxes)
+                                self.labels.append(np.array(boxes, dtype=np.float64))
+                                self.shapes.append((img_width,img_height))
+                                self.segments.append(segs)
+                                self.img_files.append(image_dir)
+                else:
+                    for append_data in append_fp_datas:#将所有的负样本都纳入到训练过程中去
+                        images_root = os.path.dirname(append_data)
+                        coco = COCO(self.check_anns_dir(append_data))
+                        for ImgId in coco.getImgIds():
+
+                            img = coco.loadImgs([ImgId])[0]
+                            image_dir = self.check_img_dir(os.path.join(images_root,img['file_name']))
+                            if not os.path.exists(image_dir):
+                                print(image_dir)
+                                continue
+                            
+                            #assert img['width'] == img['roi'][2]-img["roi"][0], "annotation error"
+                            #assert img['height'] == img['roi'][3]-img["roi"][1], "annotation error"
+
+                            img_width,img_height = img['width'],img['height']
+
+                            annIds =  coco.getAnnIds(ImgId)
+                            anns = coco.loadAnns(annIds)
+
+                            boxes = []
+                            segs = []
+                            for ann in anns:
+                                if ann['category_id'] in select_cats_id:
+                                    
+                                    box = [self.cat_id_map[ann['category_id']],
+                                            (ann['bbox'][0]+ann['bbox'][2]/2)/img_width,
+                                            (ann['bbox'][1]+ann['bbox'][3]/2)/img_height,
+                                            ann['bbox'][2]/img_width,
+                                            ann['bbox'][3]/img_height]
+                                    seg = []
+                                    #seg.append(self.cat_id_map[ann['category_id']])
+
+                                    #ann_segmentation_minrect = seg2minrect(ann['segmentation'][0])
+                                    if 'segmentation' in ann and len(ann['segmentation']):
+                                        for coord_index,coord in enumerate(ann['segmentation'][0]):
+                                            if coord_index%2==1:
+                                                
+                                                #box.append(ann_segmentation_minrect[coord_index-1]/img_width)
+                                                #box.append(coord/img_height)
+
+                                                seg.append(ann['segmentation'][0][coord_index-1]/img_width)
+                                                seg.append(coord/img_height)
+
+                                                #box.append(ann_segmentation_minrect[coord_index-1])
+                                                #box.append(coord)
+
+                                                #seg.append(ann['segmentation'][0][coord_index-1])
+                                                #seg.append(coord)
+                                    
+                                    boxes.append(box)
+                                    segs.append(np.array(seg, dtype=np.float32).reshape(-1, 2))
+
+                            if len(boxes)>0:
+                                self.instance_n+=len(boxes)
+                                self.labels.append(np.array(boxes, dtype=np.float64))
+                                self.shapes.append((img_width,img_height))
+                                self.segments.append(segs)
+                                self.img_files.append(image_dir)            
+
+            self.datasets_count.append(len(self.img_files))
+
+            times_tp = 1
+            if True: # add the 协和2015-2021年数据_append data
+                append_tp_datas = ["/data2/qilei_chen/DATA/WJ_V1/v1_append_cancer",
+                                "/data2/qilei_chen/DATA/WJ_V1/v1_append_high_level"]
+
+                select_cats_id = [3,5]
+                self.cat_id_map = {3:0,5:0}
+                if test_mode:
+                    pass
+                else:
+                    for append_data in append_tp_datas*times_tp:
+                        images_root = append_data
+                        coco = COCO(self.check_anns_dir(os.path.join(images_root,'annotations','crop_instances_default.json')))
+                        for ImgId in coco.getImgIds():
+
+                            img = coco.loadImgs([ImgId])[0]
+                            image_dir = self.check_img_dir(os.path.join(images_root,'crop_images',img['file_name']))
+                            if not os.path.exists(image_dir):
+                                print(image_dir)
+                                continue
+                            
+                            #assert img['width'] == img['roi'][2]-img["roi"][0], "annotation error"
+                            #assert img['height'] == img['roi'][3]-img["roi"][1], "annotation error"
+
+                            img_width,img_height = img['width'],img['height']
+
+                            annIds =  coco.getAnnIds(ImgId)
+                            anns = coco.loadAnns(annIds)
+
+                            boxes = []
+                            segs = []
+                            for ann in anns:
+                                if ann['category_id'] in select_cats_id:
+                                    
+                                    box = [self.cat_id_map[ann['category_id']],
+                                            (ann['bbox'][0]+ann['bbox'][2]/2)/img_width,
+                                            (ann['bbox'][1]+ann['bbox'][3]/2)/img_height,
+                                            ann['bbox'][2]/img_width,
+                                            ann['bbox'][3]/img_height]
+                                    '''
+                                    box = []
+                                    box.append(cat_id_map[ann['category_id']])
+                                    '''
+                                    seg = []
+                                    #seg.append(self.cat_id_map[ann['category_id']])
+
+                                    #ann_segmentation_minrect = seg2minrect(ann['segmentation'][0])
+                                    if 'segmentation' in ann and len(ann['segmentation']):
+                                        for coord_index,coord in enumerate(ann['segmentation'][0]):
+                                            if coord_index%2==1:
+                                                
+                                                #box.append(ann_segmentation_minrect[coord_index-1]/img_width)
+                                                #box.append(coord/img_height)
+
+                                                seg.append(ann['segmentation'][0][coord_index-1]/img_width)
+                                                seg.append(coord/img_height)
+
+                                                #box.append(ann_segmentation_minrect[coord_index-1])
+                                                #box.append(coord)
+
+                                                #seg.append(ann['segmentation'][0][coord_index-1])
+                                                #seg.append(coord)
+                                    
+                                    boxes.append(box)
+                                    segs.append(np.array(seg, dtype=np.float32).reshape(-1, 2))
+
+                            if len(boxes)>0:
+                                self.instance_n+=len(boxes)
+                                self.labels.append(np.array(boxes, dtype=np.float64))
+                                self.shapes.append((img_width,img_height))
+                                self.segments.append(segs)
+                                self.img_files.append(image_dir)
+            
+            self.datasets_count.append(len(self.img_files))
+            
+            #xl65versions = ['org','m111:774','m114:156','m117:405','m123:157']
+            xl65v = 'm123'
+            prob = 0.3
+            train_both = False
+            import random
+            if True: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練過程中
+                append_fp_data_dir = "/data2/qilei_chen/wj_fp_images1"
+
+                select_cats_id = [1,]
+                self.cat_id_map = {1:1}
+                
+                #ann_file = 'fp_instances_default_train.json'
+                #if test_mode:
+                #    ann_file = 'fp_instances_default_test.json'
+                
+                if test_mode:
+                    if train_both:
+                        ann_files = []
+                    else:
+                        ann_files = []#['fp_instances_default_test.json',]
+                else:
+                    if train_both:
+                        ann_files =['fp_instances_default_train.json','fp_instances_default_test.json',]
+                    else:
+                        ann_files =['fp_instances_default_train.json',]
+                for ann_file in ann_files:
+                
+                    images_root = append_fp_data_dir
+                    coco = COCO(self.check_anns_dir(os.path.join(images_root,ann_file)))
                     for ImgId in coco.getImgIds():
 
                         img = coco.loadImgs([ImgId])[0]
-                        image_dir = self.check_img_dir(os.path.join(images_root,img['file_name']))
-                        if not os.path.exists(image_dir):
-                            print(image_dir)
-                            continue
+                        image_dir = self.check_img_dir(os.path.join(images_root,img['file_name'][1:]))
                         
-                        #assert img['width'] == img['roi'][2]-img["roi"][0], "annotation error"
-                        #assert img['height'] == img['roi'][3]-img["roi"][1], "annotation error"
-
-                        img_width,img_height = img['width'],img['height']
-
-                        annIds =  coco.getAnnIds(ImgId)
-                        anns = coco.loadAnns(annIds)
-
-                        boxes = []
-                        segs = []
-                        for ann in anns:
-                            if ann['category_id'] in select_cats_id:
-                                
-                                box = [self.cat_id_map[ann['category_id']],
-                                        (ann['bbox'][0]+ann['bbox'][2]/2)/img_width,
-                                        (ann['bbox'][1]+ann['bbox'][3]/2)/img_height,
-                                        ann['bbox'][2]/img_width,
-                                        ann['bbox'][3]/img_height]
-                                seg = []
-                                #seg.append(self.cat_id_map[ann['category_id']])
-
-                                #ann_segmentation_minrect = seg2minrect(ann['segmentation'][0])
-                                if 'segmentation' in ann and len(ann['segmentation']):
-                                    for coord_index,coord in enumerate(ann['segmentation'][0]):
-                                        if coord_index%2==1:
-                                            
-                                            #box.append(ann_segmentation_minrect[coord_index-1]/img_width)
-                                            #box.append(coord/img_height)
-
-                                            seg.append(ann['segmentation'][0][coord_index-1]/img_width)
-                                            seg.append(coord/img_height)
-
-                                            #box.append(ann_segmentation_minrect[coord_index-1])
-                                            #box.append(coord)
-
-                                            #seg.append(ann['segmentation'][0][coord_index-1])
-                                            #seg.append(coord)
-                                
-                                boxes.append(box)
-                                segs.append(np.array(seg, dtype=np.float32).reshape(-1, 2))
-
-                        if len(boxes)>0:
-                            self.instance_n+=len(boxes)
-                            self.labels.append(np.array(boxes, dtype=np.float64))
-                            self.shapes.append((img_width,img_height))
-                            self.segments.append(segs)
-                            self.img_files.append(image_dir)
-            else:
-                for append_data in append_fp_datas:#将所有的负样本都纳入到训练过程中去
-                    images_root = os.path.dirname(append_data)
-                    coco = COCO(self.check_anns_dir(append_data))
-                    for ImgId in coco.getImgIds():
-
-                        img = coco.loadImgs([ImgId])[0]
-                        image_dir = self.check_img_dir(os.path.join(images_root,img['file_name']))
-                        if not os.path.exists(image_dir):
-                            print(image_dir)
-                            continue
+                        if xl65v=='m111':
+                            image_dir = image_dir.replace("/images/","/xl65_images_manual_111/")
+                        elif xl65v=="m114":
+                            image_dir = image_dir.replace("/images/","/xl65_images_manual_114/")
+                        elif xl65v=="m117":
+                            image_dir = image_dir.replace("/images/","/xl65_images_manual_117/")
+                        elif xl65v=="m123":
+                            image_dir = image_dir.replace("/images/","/xl65_images_manual_123/")
                         
-                        #assert img['width'] == img['roi'][2]-img["roi"][0], "annotation error"
-                        #assert img['height'] == img['roi'][3]-img["roi"][1], "annotation error"
-
-                        img_width,img_height = img['width'],img['height']
-
-                        annIds =  coco.getAnnIds(ImgId)
-                        anns = coco.loadAnns(annIds)
-
-                        boxes = []
-                        segs = []
-                        for ann in anns:
-                            if ann['category_id'] in select_cats_id:
-                                
-                                box = [self.cat_id_map[ann['category_id']],
-                                        (ann['bbox'][0]+ann['bbox'][2]/2)/img_width,
-                                        (ann['bbox'][1]+ann['bbox'][3]/2)/img_height,
-                                        ann['bbox'][2]/img_width,
-                                        ann['bbox'][3]/img_height]
-                                seg = []
-                                #seg.append(self.cat_id_map[ann['category_id']])
-
-                                #ann_segmentation_minrect = seg2minrect(ann['segmentation'][0])
-                                if 'segmentation' in ann and len(ann['segmentation']):
-                                    for coord_index,coord in enumerate(ann['segmentation'][0]):
-                                        if coord_index%2==1:
-                                            
-                                            #box.append(ann_segmentation_minrect[coord_index-1]/img_width)
-                                            #box.append(coord/img_height)
-
-                                            seg.append(ann['segmentation'][0][coord_index-1]/img_width)
-                                            seg.append(coord/img_height)
-
-                                            #box.append(ann_segmentation_minrect[coord_index-1])
-                                            #box.append(coord)
-
-                                            #seg.append(ann['segmentation'][0][coord_index-1])
-                                            #seg.append(coord)
-                                
-                                boxes.append(box)
-                                segs.append(np.array(seg, dtype=np.float32).reshape(-1, 2))
-
-                        if len(boxes)>0:
-                            self.instance_n+=len(boxes)
-                            self.labels.append(np.array(boxes, dtype=np.float64))
-                            self.shapes.append((img_width,img_height))
-                            self.segments.append(segs)
-                            self.img_files.append(image_dir)            
-
-        self.datasets_count.append(len(self.img_files))
-
-        times_tp = 1
-        if True: # add the 协和2015-2021年数据_append data
-            append_tp_datas = ["/data2/qilei_chen/DATA/WJ_V1/v1_append_cancer",
-                            "/data2/qilei_chen/DATA/WJ_V1/v1_append_high_level"]
-
-            select_cats_id = [3,5]
-            self.cat_id_map = {3:0,5:0}
-            if test_mode:
-                pass
-            else:
-                for append_data in append_tp_datas*times_tp:
-                    images_root = append_data
-                    coco = COCO(self.check_anns_dir(os.path.join(images_root,'annotations','crop_instances_default.json')))
-                    for ImgId in coco.getImgIds():
-
-                        img = coco.loadImgs([ImgId])[0]
-                        image_dir = self.check_img_dir(os.path.join(images_root,'crop_images',img['file_name']))
+                        #if (not os.path.exists(image_dir)) or prob>random.random():
                         if not os.path.exists(image_dir):
                             print(image_dir)
                             continue
@@ -2251,314 +2368,222 @@ class LoadCOCOv2(LoadImagesAndLabels):
                             self.shapes.append((img_width,img_height))
                             self.segments.append(segs)
                             self.img_files.append(image_dir)
-        
-        self.datasets_count.append(len(self.img_files))
-        
-        #xl65versions = ['org','m111:774','m114:156','m117:405','m123:157']
-        xl65v = 'm123'
-        prob = 0.3
-        train_both = False
-        import random
-        if True: #將xiaolong挑選的65段奧林巴斯視頻的fp納入到訓練過程中
-            append_fp_data_dir = "/data2/qilei_chen/wj_fp_images1"
 
-            select_cats_id = [1,]
-            self.cat_id_map = {1:1}
-            
-            #ann_file = 'fp_instances_default_train.json'
-            #if test_mode:
-            #    ann_file = 'fp_instances_default_test.json'
-            
-            if test_mode:
-                if train_both:
-                    ann_files = []
-                else:
-                    ann_files = []#['fp_instances_default_test.json',]
-            else:
-                if train_both:
-                    ann_files =['fp_instances_default_train.json','fp_instances_default_test.json',]
-                else:
-                    ann_files =['fp_instances_default_train.json',]
-            for ann_file in ann_files:
-            
-                images_root = append_fp_data_dir
-                coco = COCO(self.check_anns_dir(os.path.join(images_root,ann_file)))
-                for ImgId in coco.getImgIds():
+            self.datasets_count.append(len(self.img_files)) #利用这个数据的存储实现每次epoch过程中随机挑选一部分m111的图片数据
 
-                    img = coco.loadImgs([ImgId])[0]
-                    image_dir = self.check_img_dir(os.path.join(images_root,img['file_name'][1:]))
-                    
-                    if xl65v=='m111':
-                        image_dir = image_dir.replace("/images/","/xl65_images_manual_111/")
-                    elif xl65v=="m114":
-                        image_dir = image_dir.replace("/images/","/xl65_images_manual_114/")
-                    elif xl65v=="m117":
-                        image_dir = image_dir.replace("/images/","/xl65_images_manual_117/")
-                    elif xl65v=="m123":
-                        image_dir = image_dir.replace("/images/","/xl65_images_manual_123/")
-                    
-                    #if (not os.path.exists(image_dir)) or prob>random.random():
-                    if not os.path.exists(image_dir):
-                        print(image_dir)
-                        continue
-                    
-                    #assert img['width'] == img['roi'][2]-img["roi"][0], "annotation error"
-                    #assert img['height'] == img['roi'][3]-img["roi"][1], "annotation error"
-
-                    img_width,img_height = img['width'],img['height']
-
-                    annIds =  coco.getAnnIds(ImgId)
-                    anns = coco.loadAnns(annIds)
-
-                    boxes = []
-                    segs = []
-                    for ann in anns:
-                        if ann['category_id'] in select_cats_id:
-                            
-                            box = [self.cat_id_map[ann['category_id']],
-                                    (ann['bbox'][0]+ann['bbox'][2]/2)/img_width,
-                                    (ann['bbox'][1]+ann['bbox'][3]/2)/img_height,
-                                    ann['bbox'][2]/img_width,
-                                    ann['bbox'][3]/img_height]
-                            '''
-                            box = []
-                            box.append(cat_id_map[ann['category_id']])
-                            '''
-                            seg = []
-                            #seg.append(self.cat_id_map[ann['category_id']])
-
-                            #ann_segmentation_minrect = seg2minrect(ann['segmentation'][0])
-                            if 'segmentation' in ann and len(ann['segmentation']):
-                                for coord_index,coord in enumerate(ann['segmentation'][0]):
-                                    if coord_index%2==1:
-                                        
-                                        #box.append(ann_segmentation_minrect[coord_index-1]/img_width)
-                                        #box.append(coord/img_height)
-
-                                        seg.append(ann['segmentation'][0][coord_index-1]/img_width)
-                                        seg.append(coord/img_height)
-
-                                        #box.append(ann_segmentation_minrect[coord_index-1])
-                                        #box.append(coord)
-
-                                        #seg.append(ann['segmentation'][0][coord_index-1])
-                                        #seg.append(coord)
-                            
-                            boxes.append(box)
-                            segs.append(np.array(seg, dtype=np.float32).reshape(-1, 2))
-
-                    if len(boxes)>0:
-                        self.instance_n+=len(boxes)
-                        self.labels.append(np.array(boxes, dtype=np.float64))
-                        self.shapes.append((img_width,img_height))
-                        self.segments.append(segs)
-                        self.img_files.append(image_dir)
-
-        self.datasets_count.append(len(self.img_files)) #利用这个数据的存储实现每次epoch过程中随机挑选一部分m111的图片数据
-
-        with_others = False #训练过程中是否将负样本也纳入进去
-        times_tp = 1
-        only_test = False #只纳入该批数据的测试部分
-        if True: #将gastro8-12的5批数据纳入，其中4批用于训练，1批用于测试
-            '''
-            folder_dir = '/data3/qilei_chen/DATA/gastro8-12'
-            dataset_dirs = [folder_dir+"/协和21-11月~2022-5癌变已标注/协和2021-11月_2022-5癌变_20221121", #该批数据用于测试
-                            folder_dir+"/2021-2022年癌变已标注/20221111/2021_2022_癌变_20221111/",
-                            folder_dir+"/低级别_2021_2022已标注/2021_2022_低级别_20221110/",
-                            folder_dir+"/协和2022_第一批胃早癌视频裁图已标注/20221115/癌变2022_20221115",
-                            folder_dir+"/协和2022_第二批胃早癌视频裁图已标注/协和_2022_癌变_2_20221117"]
-            '''
-            folder_dir = 'data_gc/gastro8-12_117'
-            dataset_dirs = [folder_dir+"/协和21-11月~2022-5癌变已标注/协和2021-11月_2022-5癌变_20221121", #该批数据用于测试
-                            folder_dir+"/2021-2022年癌变已标注/20221111/2021_2022_癌变_20221111/",
-                            folder_dir+"/低级别_2021_2022已标注/2021_2022_低级别_20221110/",
-                            folder_dir+"/协和2022_第一批胃早癌视频裁图已标注/20221115/癌变2022_20221115",
-                            folder_dir+"/协和2022_第二批胃早癌视频裁图已标注/协和_2022_癌变_2_20221117"
-                            ]
-            if only_test:
-                if test_mode:
-                        self.load_standard_gastro(dataset_dirs[0],select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
-            else:                
-                if test_mode:
-                        self.load_standard_gastro(dataset_dirs[0],select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
-                else:
-                    if with_others:
-                        for dataset_dir in dataset_dirs[1:]*times_tp:
-                            self.load_standard_gastro(dataset_dir)
+            with_others = False #训练过程中是否将负样本也纳入进去
+            times_tp = 1
+            only_test = False #只纳入该批数据的测试部分
+            if True: #将gastro8-12的5批数据纳入，其中4批用于训练，1批用于测试
+                '''
+                folder_dir = '/data3/qilei_chen/DATA/gastro8-12'
+                dataset_dirs = [folder_dir+"/协和21-11月~2022-5癌变已标注/协和2021-11月_2022-5癌变_20221121", #该批数据用于测试
+                                folder_dir+"/2021-2022年癌变已标注/20221111/2021_2022_癌变_20221111/",
+                                folder_dir+"/低级别_2021_2022已标注/2021_2022_低级别_20221110/",
+                                folder_dir+"/协和2022_第一批胃早癌视频裁图已标注/20221115/癌变2022_20221115",
+                                folder_dir+"/协和2022_第二批胃早癌视频裁图已标注/协和_2022_癌变_2_20221117"]
+                '''
+                folder_dir = 'data_gc/gastro8-12_117'
+                dataset_dirs = [folder_dir+"/协和21-11月~2022-5癌变已标注/协和2021-11月_2022-5癌变_20221121", #该批数据用于测试
+                                folder_dir+"/2021-2022年癌变已标注/20221111/2021_2022_癌变_20221111/",
+                                folder_dir+"/低级别_2021_2022已标注/2021_2022_低级别_20221110/",
+                                folder_dir+"/协和2022_第一批胃早癌视频裁图已标注/20221115/癌变2022_20221115",
+                                folder_dir+"/协和2022_第二批胃早癌视频裁图已标注/协和_2022_癌变_2_20221117"
+                                ]
+                if only_test:
+                    if test_mode:
+                            self.load_standard_gastro(dataset_dirs[0],select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
+                else:                
+                    if test_mode:
+                            self.load_standard_gastro(dataset_dirs[0],select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
                     else:
-                        for dataset_dir in dataset_dirs[1:]*times_tp:
+                        if with_others:
+                            for dataset_dir in dataset_dirs[1:]*times_tp:
+                                self.load_standard_gastro(dataset_dir)
+                        else:
+                            for dataset_dir in dataset_dirs[1:]*times_tp:
+                                self.load_standard_gastro(dataset_dir,select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
+
+            self.datasets_count.append(len(self.img_files))
+            
+            far_vision = 'fars_118'
+                            
+            with_others = True
+            times_tp = 1        
+            if True: #将协和39段视频中挑选的两批远景图片数据集全部纳入训练过程
+                if far_vision =='fars_118':
+                    dataset_dirs = ['data_gc/fars_118/xiehe_far_1',
+                                    'data_gc/fars_118/xiehe_far_2']                
+                else:
+                    dataset_dirs = ['data_gc/xiehe_far_1',
+                                    'data_gc/xiehe_far_2']
+                if with_others:
+                    if test_mode:
+                        pass
+                    else:
+                        for dataset_dir in dataset_dirs*times_tp:
+                            self.load_standard_gastro(dataset_dir)
+                else:
+                    if test_mode:
+                        pass
+                    else:
+                        for dataset_dir in dataset_dirs*times_tp:
                             self.load_standard_gastro(dataset_dir,select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
 
-        self.datasets_count.append(len(self.img_files))
-        
-        far_vision = 'fars_118'
-                        
-        with_others = True
-        times_tp = 1        
-        if True: #将协和39段视频中挑选的两批远景图片数据集全部纳入训练过程
-            if far_vision =='fars_118':
-                dataset_dirs = ['data_gc/fars_118/xiehe_far_1',
-                                'data_gc/fars_118/xiehe_far_2']                
-            else:
-                dataset_dirs = ['data_gc/xiehe_far_1',
-                                'data_gc/xiehe_far_2']
-            if with_others:
-                if test_mode:
-                    pass
-                else:
-                    for dataset_dir in dataset_dirs*times_tp:
-                        self.load_standard_gastro(dataset_dir)
-            else:
-                if test_mode:
-                    pass
-                else:
-                    for dataset_dir in dataset_dirs*times_tp:
-                        self.load_standard_gastro(dataset_dir,select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
+            self.datasets_count.append(len(self.img_files))
 
-        self.datasets_count.append(len(self.img_files))
-
-        with_others = False
-        times_tp = 1        
-        if True: #将湘雅2021-2022视频中挑选的两批远景图片数据集全部纳入训练过程
-            if far_vision == 'fars_118':
-                dataset_dirs = ['data_gc/fars_118/xiangya_far_2021',
-                                'data_gc/fars_118/xiangya_far_2022']
-            else:
-                dataset_dirs = ['data_gc/xiangya_far_2021',
-                                'data_gc/xiangya_far_2022']
-            if with_others:
-                if test_mode:
-                    pass
+            with_others = False
+            times_tp = 1        
+            if True: #将湘雅2021-2022视频中挑选的两批远景图片数据集全部纳入训练过程
+                if far_vision == 'fars_118':
+                    dataset_dirs = ['data_gc/fars_118/xiangya_far_2021',
+                                    'data_gc/fars_118/xiangya_far_2022']
                 else:
-                    for dataset_dir in dataset_dirs*times_tp:
-                        self.load_standard_gastro(dataset_dir)
-            else:
-                if test_mode:
-                    pass
+                    dataset_dirs = ['data_gc/xiangya_far_2021',
+                                    'data_gc/xiangya_far_2022']
+                if with_others:
+                    if test_mode:
+                        pass
+                    else:
+                        for dataset_dir in dataset_dirs*times_tp:
+                            self.load_standard_gastro(dataset_dir)
                 else:
-                    for dataset_dir in dataset_dirs*times_tp:
-                        self.load_standard_gastro(dataset_dir,select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
+                    if test_mode:
+                        pass
+                    else:
+                        for dataset_dir in dataset_dirs*times_tp:
+                            self.load_standard_gastro(dataset_dir,select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
 
-        self.datasets_count.append(len(self.img_files))
-        
-        if True: #将xiangya_202209_202211纳入测试集合,这里的图片出自三段测试视频
-            dataset_dirs = ['data_gc/xiangya_202209_202211','']
-            if test_mode:
-                self.load_standard_gastro(dataset_dirs[0],select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
+            self.datasets_count.append(len(self.img_files))
+            
+            if True: #将xiangya_202209_202211纳入测试集合,这里的图片出自三段测试视频
+                dataset_dirs = ['data_gc/xiangya_202209_202211','']
+                if test_mode:
+                    self.load_standard_gastro(dataset_dirs[0],select_cats_id=[1,4,5],cat_id_map={1:0,4:0,5:0})
+                    
+
+            self.datasets_count.append(len(self.img_files))
+            
+            
+            if True: #将10段测试视频中挑选出来的fp纳入训练过程
+                #append_fp_data_dir = "data_gc/videos_test/xiehe2111_2205_WJ_V1_with_mfp7-12_best_roifix"
+                append_fp_data_dir = "data_gc/10_videos_fp"
                 
-
-        self.datasets_count.append(len(self.img_files))
-        
-        
-        if True: #将10段测试视频中挑选出来的fp纳入训练过程
-            #append_fp_data_dir = "data_gc/videos_test/xiehe2111_2205_WJ_V1_with_mfp7-12_best_roifix"
-            append_fp_data_dir = "data_gc/10_videos_fp"
-            
-            if not test_mode:
-                self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:1})            
-
-        self.datasets_count.append(len(self.img_files))
-        
-        times_12zc = 1
-        cat_id = 2 #1代表分2类，2代表分三类
-        if True: #将带有十二指肠乳头的fp数据集纳入训练过程
-            append_fp_data_dir = "data_gc/胃部高风险病变误报图片"
-            if not test_mode:
-                for i in range(times_12zc):
-                    self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:cat_id}) 
-          
-
-        self.datasets_count.append(len(self.img_files))
-        
-        times_12zc = 1
-        #cat_id = 1 #1代表分2类，2代表分三类
-        if True: #将手动标注的带有十二指肠乳头的fp数据集纳入训练过程
-            append_fp_data_dir = "data_gc/gas12nips"
-            if not test_mode:
-                for i in range(times_12zc):
-                    self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:cat_id}) 
-          
-
-        self.datasets_count.append(len(self.img_files))
-        
-        repeat_time_far17 = 4
-        if True: #将far17的50张图片阳性样本纳入
-            append_fp_data_dir = "data_gc/湘雅_远景_2021_2022_低级别_20230110"
-            
-            if not test_mode:
-                for rt in range(repeat_time_far17):
-                    self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,2,3],cat_id_map={1:0,2:1,3:1})            
-
-        self.datasets_count.append(len(self.img_files))        
-        
-        if True: #将带有十二指肠乳头的fp数据集中空图片纳入训练过程
-            append_fp_data_dir = "data_gc/胃部高风险病变误报图片_empty"
-            
-            if not test_mode:
-                self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:1})            
-
-        self.datasets_count.append(len(self.img_files))
-        #print(self.datasets_count)
-        repeat_time_gc_df1 = 1
-        if False: #gc_df1随机挑选的纳入训练中
-            append_fp_data_dir = "data_gc/gc_df1"
-            
-            if not test_mode:
-                for rt in range(repeat_time_gc_df1):
-                    self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:0})            
-
-        self.datasets_count.append(len(self.img_files))    
-        #print(self.datasets_count)
-        
-        repeat_time_gc_df2 = 1
-        if False: #gc_df2随机挑选的纳入训练中
-            append_fp_data_dir = "data_gc/gc_df2"
-            
-            if not test_mode:
-                for rt in range(repeat_time_gc_df2):
-                    self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:0})            
-
-        self.datasets_count.append(len(self.img_files))  
-        
-        repeat_time_gc_df_e50 = ['_rd',]
-        if True: #gc_df_e50挑选的纳入训练中
-            append_fp_data_dir = "data_gc/gc_df_e50"
-            
-            if not test_mode:
-                for rt in repeat_time_gc_df_e50:
-                    self.load_standard_gastro(append_fp_data_dir+"/gc_df"+str(rt),select_cats_id=[1,],cat_id_map={1:0})            
-
-        self.datasets_count.append(len(self.img_files))           
-
-        repeat_time_gc_df_e70 = ['_rd',]
-        if True: #gc_df_e70挑选的纳入训练中
-            append_fp_data_dir = "data_gc/gc_df_e70"
-            
-            if not test_mode:
-                for rt in repeat_time_gc_df_e70:
-                    self.load_standard_gastro(append_fp_data_dir+"/gc_df"+str(rt),select_cats_id=[1,],cat_id_map={1:0})            
-
-        self.datasets_count.append(len(self.img_files))  
-
-        repeat_time_gc_df_e100 = ['_rd',]
-        if True: #gc_df_e100挑选的纳入训练中
-            append_fp_data_dir = "data_gc/gc_df_e100"
-            
-            if not test_mode:
-                for rt in repeat_time_gc_df_e100:
-                    self.load_standard_gastro(append_fp_data_dir+"/gc_df"+str(rt),select_cats_id=[1,],cat_id_map={1:0})            
-
-        self.datasets_count.append(len(self.img_files))  
-        
-        repeat_time = 1
-        if False: #gastro_images_bubble_samples手动标注的气泡的纳入训练中
-            append_fp_data_dir = "data_gc/gastro_images_bubble_samples"
-            
-            if not test_mode:
-                for rt in range(repeat_time):
+                if not test_mode:
                     self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:1})            
 
-        self.datasets_count.append(len(self.img_files))  
+            self.datasets_count.append(len(self.img_files))
+            
+            times_12zc = 1
+            cat_id = 2 #1代表分2类，2代表分三类
+            if True: #将带有十二指肠乳头的fp数据集纳入训练过程
+                append_fp_data_dir = "data_gc/胃部高风险病变误报图片"
+                if not test_mode:
+                    for i in range(times_12zc):
+                        self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:cat_id}) 
+            
+
+            self.datasets_count.append(len(self.img_files))
+            
+            times_12zc = 1
+            #cat_id = 1 #1代表分2类，2代表分三类
+            if True: #将手动标注的带有十二指肠乳头的fp数据集纳入训练过程
+                append_fp_data_dir = "data_gc/gas12nips"
+                if not test_mode:
+                    for i in range(times_12zc):
+                        self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:cat_id}) 
+            
+
+            self.datasets_count.append(len(self.img_files))
+            
+            repeat_time_far17 = 4
+            if True: #将far17的50张图片阳性样本纳入
+                append_fp_data_dir = "data_gc/湘雅_远景_2021_2022_低级别_20230110"
+                
+                if not test_mode:
+                    for rt in range(repeat_time_far17):
+                        self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,2,3],cat_id_map={1:0,2:1,3:1})            
+
+            self.datasets_count.append(len(self.img_files))        
+            
+            if True: #将带有十二指肠乳头的fp数据集中空图片纳入训练过程
+                append_fp_data_dir = "data_gc/胃部高风险病变误报图片_empty"
+                
+                if not test_mode:
+                    self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:1})            
+
+            self.datasets_count.append(len(self.img_files))
+            #print(self.datasets_count)
+            repeat_time_gc_df1 = 1
+            if False: #gc_df1随机挑选的纳入训练中
+                append_fp_data_dir = "data_gc/gc_df1"
+                
+                if not test_mode:
+                    for rt in range(repeat_time_gc_df1):
+                        self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:0})            
+
+            self.datasets_count.append(len(self.img_files))    
+            #print(self.datasets_count)
+            
+            repeat_time_gc_df2 = 1
+            if False: #gc_df2随机挑选的纳入训练中
+                append_fp_data_dir = "data_gc/gc_df2"
+                
+                if not test_mode:
+                    for rt in range(repeat_time_gc_df2):
+                        self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:0})            
+
+            self.datasets_count.append(len(self.img_files))  
+            
+            repeat_time_gc_df_e50 = ['_rd',]
+            if True: #gc_df_e50挑选的纳入训练中
+                append_fp_data_dir = "data_gc/gc_df_e50"
+                
+                if not test_mode:
+                    for rt in repeat_time_gc_df_e50:
+                        self.load_standard_gastro(append_fp_data_dir+"/gc_df"+str(rt),select_cats_id=[1,],cat_id_map={1:0})            
+
+            self.datasets_count.append(len(self.img_files))           
+
+            repeat_time_gc_df_e70 = ['_rd',]
+            if True: #gc_df_e70挑选的纳入训练中
+                append_fp_data_dir = "data_gc/gc_df_e70"
+                
+                if not test_mode:
+                    for rt in repeat_time_gc_df_e70:
+                        self.load_standard_gastro(append_fp_data_dir+"/gc_df"+str(rt),select_cats_id=[1,],cat_id_map={1:0})            
+
+            self.datasets_count.append(len(self.img_files))  
+
+            repeat_time_gc_df_e100 = ['_rd',]
+            if True: #gc_df_e100挑选的纳入训练中
+                append_fp_data_dir = "data_gc/gc_df_e100"
+                
+                if not test_mode:
+                    for rt in repeat_time_gc_df_e100:
+                        self.load_standard_gastro(append_fp_data_dir+"/gc_df"+str(rt),select_cats_id=[1,],cat_id_map={1:0})            
+
+            self.datasets_count.append(len(self.img_files))  
+            
+            repeat_time = 1
+            if True: #gastro_images_bubble_samples手动标注的气泡的纳入训练中
+                append_fp_data_dir = "data_gc/gastro_images_bubble_samples"
+                
+                if not test_mode:
+                    for rt in range(repeat_time):
+                        self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:1})            
+
+            self.datasets_count.append(len(self.img_files))  
+            
+            repeat_time = 1
+            if True: #随机从胃部部位数据集中手动挑选和标注的生成式正样本纳入训练中
+                append_fp_data_dir = "data_gl/gc_df_rd"
+                
+                if not test_mode:
+                    for rt in range(repeat_time):
+                        self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:0})            
+
+            self.datasets_count.append(len(self.img_files))  
 
         self.shapes = np.array(self.shapes, dtype=np.float64)
         #self.img_files = list(cache.keys())  # update
@@ -2598,6 +2623,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
                            4.1:load_image,}
         
         self.test_mode = test_mode
+        self.val_mode = val_mode
         
         self.cache_folder = 'data_gc'
         self.images_cache_on = False
@@ -2606,7 +2632,10 @@ class LoadCOCOv2(LoadImagesAndLabels):
         self.img_hw0 = []
         self.img_hw = []
         
-        self.images_cache()
+        if test_mode or val_mode: # test_mode和val_mode下数据都是固定的
+            self.images_cache_and_save()
+        else:
+            self.images_cache()
         #self.images_cache_and_save()
 
         # Update labels
@@ -2779,7 +2808,9 @@ class LoadCOCOv2(LoadImagesAndLabels):
         if self.images_cache_on:
             return
         else:
-            if self.test_mode:
+            if self.val_mode:
+                cache_file_name = "val_"+str(self.cache_vision)+".cache"
+            elif self.test_mode:
                 cache_file_name = "test_"+str(self.cache_vision)+".cache"
             else:
                 cache_file_name = "train_"+str(self.cache_vision)+".cache"

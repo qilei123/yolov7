@@ -3,14 +3,14 @@ DELAY_TIME=1s
 sleep $DELAY_TIME
 echo "train after $DELAY_TIME"
 python train_org_dev.py --workers 64 \
-    --device 2 \
+    --device 2,3 \
     --batch-size 64 \
     --data data/wj_v1_with_fp.yaml \
     --cfg cfg/training/yolov7-wj_v1_with_fp.yaml \
     --weights 'yolov7.pt' \
     --name yolov7-wj_v1_with_fp \
     --hyp data/hyp.scratch.gc.yaml \
-    --project 27_yolov7_output/WJ_V1_with_mfp7-22-2-27-2 \
+    --project 27_yolov7_output/WJ_V1_with_mfp7-22-2-28-2-v \
     --exist-ok \
     --c_criteria \
     --epochs 300 --shuffle_data_epoch

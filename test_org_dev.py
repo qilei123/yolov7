@@ -76,7 +76,7 @@ def test(data,
         is_coco = data.endswith('coco.yaml')
         with open(data) as f:
             data = yaml.load(f, Loader=yaml.SafeLoader)
-    check_dataset(data)  # check
+    #check_dataset(data)  # check
     nc = 1 if single_cls else int(data['nc'])  # number of classes
     iouv = torch.linspace(0.5, 0.95, 10).to(device)  # iou vector for mAP@0.5:0.95
     niou = iouv.numel()
@@ -149,7 +149,7 @@ def test(data,
             out = non_max_suppression(out, conf_thres=conf_thres, iou_thres=iou_thres, labels=lb, multi_label=True)
             t1 += time_synchronized() - t
             
-            out_c = non_max_suppression(out_c, conf_thres=0.25, iou_thres=iou_thres, labels=lb, multi_label=True)
+            out_c = non_max_suppression(out_c, conf_thres=0.3, iou_thres=iou_thres, labels=lb, multi_label=True)
         #这里采用宽松策略进行结果统计
         for si,predn in enumerate(out_c):
             
@@ -408,7 +408,8 @@ def vtest(data,
          trace=False,
          is_coco=False,
          v5_metric=False,
-         c_criteria = True):
+         c_criteria = True,
+         results_file = None):
     # Initialize/load model and set device
     training = model is not None
     if training:  # called by train.py
@@ -441,7 +442,7 @@ def vtest(data,
         is_coco = data.endswith('coco.yaml')
         with open(data) as f:
             data = yaml.load(f, Loader=yaml.SafeLoader)
-    check_dataset(data)  # check
+    #check_dataset(data)  # check
     nc = 1 if single_cls else int(data['nc'])  # number of classes
     iouv = torch.linspace(0.5, 0.95, 10).to(device)  # iou vector for mAP@0.5:0.95
     niou = iouv.numel()
@@ -512,7 +513,7 @@ def vtest(data,
             out = non_max_suppression(out, conf_thres=conf_thres, iou_thres=iou_thres, labels=lb, multi_label=True)
             t1 += time_synchronized() - t
             
-            out_c = non_max_suppression(out_c, conf_thres=0.3, iou_thres=0.5, labels=lb, multi_label=True)
+            out_c = non_max_suppression(out_c, conf_thres=0.3, iou_thres=iou_thres, labels=lb, multi_label=True)
         #这里采用宽松策略进行结果统计
         for si,predn in enumerate(out_c):
             pred = predn.clone()
@@ -525,7 +526,7 @@ def vtest(data,
             # target boxes
             tbox = xywh2xyxy(labels[:, 1:5])
             scale_coords(img[si].shape[1:], tbox, shapes[si][0], shapes[si][1])  # native-space labels
-            
+            '''
             for tl,tb in zip(labels.tolist(),tbox.tolist()):
                 if tl[0] in selected_cat_ids:
                     gts+=1
@@ -541,6 +542,22 @@ def vtest(data,
                         if pp[5] == tl[0] and (pp[5] in selected_cat_ids) and condition_center(pb,tb,pos_iou_thres):
                             pos_predicts+=1
                             break
+            '''
+            gt_frame_label = labels.tolist()[0][0] 
+            pred_frame_label = 1           
+            for pp, pb in zip(pred.tolist(), box.tolist()):
+                if pp[5] == 0:
+                    pred_frame_label = 0
+                
+            if gt_frame_label == 0:
+                gts+=1
+                if pred_frame_label==0:
+                    pos_gts+=1
+                    
+            if pred_frame_label==0:
+                predicts+=1
+                if gt_frame_label==0:
+                    pos_predicts+=1
 
         # Statistics per image
         for si, pred in enumerate(out):
@@ -631,8 +648,8 @@ def vtest(data,
     c_r = pos_gts/(gts+min_value)
     c_p = pos_predicts/(predicts+min_value)
     
-    print("pos_gts:{0},gts:{1},pos_predicts:{2},predicts:{3}".format(pos_gts,gts,pos_predicts,predicts))
-    print("c_recall:{0:.4f}\nc_precision:{1:.4f}".format(c_r,c_p))
+    #print("pos_gts:{0},gts:{1},pos_predicts:{2},predicts:{3}".format(pos_gts,gts,pos_predicts,predicts))
+    #print("c_recall:{0:.4f}\nc_precision:{1:.4f}".format(c_r,c_p))
     
     # Compute statistics
     stats = [np.concatenate(x, 0) for x in zip(*stats)]  # to numpy
@@ -645,17 +662,23 @@ def vtest(data,
         nt = torch.zeros(1)
 
     if c_criteria:
+        c_criteria_record = "videos c_recall:{0:.4f}\tc_precision:{1:.4f}\tpos_gts:{2}\tgts:{3}\tpos_predicts:{4}\tpredicts:{5}".format(c_r,c_p,pos_gts,gts,pos_predicts,predicts)
+        print(c_criteria_record)
         mp = c_p
         mr = c_r
+        if results_file:
+            with open(results_file, 'a') as f:
+                f.write(c_criteria_record+ '\n')  # append metrics, val_loss
     
     # Print results
     pf = '%20s' + '%12i' * 2 + '%12.3g' * 4  # print format
-    print(pf % ('all', seen, nt.sum(), mp, mr, map50, map))
+    #print(pf % ('all', seen, nt.sum(), mp, mr, map50, map))
 
     # Print results per class
     if (verbose or (nc < 50 and not training)) and nc > 1 and len(stats):
         for i, c in enumerate(ap_class):
-            print(pf % (names[c], seen, nt[c], p[i], r[i], ap50[i], ap[i]))
+            #print(pf % (names[c], seen, nt[c], p[i], r[i], ap50[i], ap[i]))
+            pass
 
     # Print speeds
     t = tuple(x / seen * 1E3 for x in (t0, t1, t0 + t1)) + (imgsz, imgsz, batch_size)  # tuple
@@ -671,8 +694,11 @@ def vtest(data,
     for i, c in enumerate(ap_class):
         maps[c] = ap[i]
     return (mp, mr, map50, map, *(loss.cpu() / len(dataloader)).tolist()), maps, t
+from utils.general import strip_optimizer
+def test_strip_optimizer():
+    strip_optimizer('27_yolov7_output/WJ_V1_with_mfp7-22-2-28-2-v/yolov7-wj_v1_with_fp/weights/last.pt',"test.pt")
 
-if __name__ == '__main__':
+def main():    
     parser = argparse.ArgumentParser(prog='test.py')
     parser.add_argument('--weights', nargs='+', type=str, default='yolov7.pt', help='model.pt path(s)')
     parser.add_argument('--data', type=str, default='data/coco.yaml', help='*.data path')
@@ -701,22 +727,40 @@ if __name__ == '__main__':
     #check_requirements()
 
     if opt.task in ('train', 'val', 'test'):  # run normally
-        test(opt.data,
-             opt.weights,
-             opt.batch_size,
-             opt.img_size,
-             opt.conf_thres,
-             opt.iou_thres,
-             opt.save_json,
-             opt.single_cls,
-             opt.augment,
-             opt.verbose,
-             save_txt=opt.save_txt | opt.save_hybrid,
-             save_hybrid=opt.save_hybrid,
-             save_conf=opt.save_conf,
-             trace=not opt.no_trace,
-             v5_metric=opt.v5_metric
-             )
+        if opt.task == "val":
+            vtest(opt.data,
+                opt.weights,
+                opt.batch_size,
+                opt.img_size,
+                opt.conf_thres,
+                opt.iou_thres,
+                opt.save_json,
+                opt.single_cls,
+                opt.augment,
+                opt.verbose,
+                save_txt=opt.save_txt | opt.save_hybrid,
+                save_hybrid=opt.save_hybrid,
+                save_conf=opt.save_conf,
+                trace=not opt.no_trace,
+                v5_metric=opt.v5_metric
+                )            
+        else:
+            test(opt.data,
+                opt.weights,
+                opt.batch_size,
+                opt.img_size,
+                opt.conf_thres,
+                opt.iou_thres,
+                opt.save_json,
+                opt.single_cls,
+                opt.augment,
+                opt.verbose,
+                save_txt=opt.save_txt | opt.save_hybrid,
+                save_hybrid=opt.save_hybrid,
+                save_conf=opt.save_conf,
+                trace=not opt.no_trace,
+                v5_metric=opt.v5_metric
+                )
 
     elif opt.task == 'speed':  # speed benchmarks
         for w in opt.weights:
@@ -736,3 +780,7 @@ if __name__ == '__main__':
             np.savetxt(f, y, fmt='%10.4g')  # save
         os.system('zip -r study.zip study_*.txt')
         plot_study_txt(x=x)  # plot
+        
+if __name__ == '__main__':
+    #main()
+    test_strip_optimizer()
