@@ -2474,8 +2474,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
             self.datasets_count.append(len(self.img_files))
             
-            times_12zc = 1
-            cat_id = 2 #1代表分2类，2代表分三类
+            times_12zc = 5
+            cat_id = 1 #1代表分2类，2代表分三类
             if True: #将带有十二指肠乳头的fp数据集纳入训练过程
                 append_fp_data_dir = "data_gc/胃部高风险病变误报图片"
                 if not test_mode:
@@ -2485,7 +2485,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
             self.datasets_count.append(len(self.img_files))
             
-            times_12zc = 1
+            times_12zc = 5
             #cat_id = 1 #1代表分2类，2代表分三类
             if True: #将手动标注的带有十二指肠乳头的fp数据集纳入训练过程
                 append_fp_data_dir = "data_gc/gas12nips"

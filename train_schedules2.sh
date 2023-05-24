@@ -10,7 +10,7 @@ python train_org_dev.py --workers 64 \
     --weights 'yolov7.pt' \
     --name yolov7-wj_v1_with_fp \
     --hyp data/hyp.scratch.gc.yaml \
-    --project 27_yolov7_output/WJ_V1_with_mfp7-22-2-28-2-v \
+    --project 27_yolov7_output/WJ_V1_with_mfp7-22-2-29-2-v \
     --exist-ok \
     --c_criteria \
     --epochs 300 --shuffle_data_epoch
