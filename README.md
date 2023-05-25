@@ -34,7 +34,7 @@ v3.2:/data_us/qilei/胃部高风险病变检测模型/binary_categories_y7-22-2.
 
 ***Latest update!***
 
-v4.1:/data_us/qilei/胃部高风险病变检测模型/
+v4.1:/data_us/qilei/胃部高风险病变检测模型/3categories_y7-22-2-31-v-150.pt
 
 模型输出结果为二分类，0代表癌变（高风险区域），1和其他编号代表其他类别区域；默认置信度为0.3，可在0.3附近进行置信度调整；
 

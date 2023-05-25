@@ -48,5 +48,6 @@ if __name__ == "__main__":
     #transfer_model('out/WJ_V1_with_mfp1-3/yolov7-wj_v1_with_fp/weights/best.pt','binary_categories_y7-1-3.pt')
     #transfer_model('out/WJ_V1_with_mfp7-12/yolov7-wj_v1_with_fp/weights/best.pt','binary_categories_y7-12-0.pt')
     #transfer_model('out/WJ_V1_with_mfp7-22-2_retrain/yolov7-wj_v1_with_fp/weights/best.pt','binary_categories_y7-22-2.pt')
+    #transfer_model('27_yolov7_output/WJ_V1_with_mfp7-22-2-31-v/yolov7-wj_v1_with_fp/weights/epoch_150.pt','3categories_y7-22-2-31-v-150.pt')
     test_case()
     pass
