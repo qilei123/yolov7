@@ -1,4 +1,12 @@
-***Latest update on 1/29/2023: v3.1 and v3.2!***
+***Latest update on 5/29/2023: v4.1!***
+
+4.1版本更新：
+
+    a.大幅压制了十二指肠乳头等的误报
+
+    b.利用GAI技术进一步提升模型的灵敏度
+
+***Update on 1/29/2023: v3.1 and v3.2!***
 
 3.1和3.2版本的模型在模型灵敏度上有较大提升，特别是针对凹陷型病变以及病变部位较远情况下的灵敏度提升；
 
@@ -20,12 +28,14 @@ v1: /data_us/qilei/胃部高风险病变检测模型，其中single_category.pt�
 
 v2: /data_us/qilei/胃部高风险病变检测模型/binary_categories_y7-3-0.pt；该模型输出结果为二分类，0代表癌变（高风险区域），1代表其他类别区域；默认置信度为0.3，可在0.3附近进行置信度调整；
 
-***Latest update!***
-
 v3.1:/data_us/qilei/胃部高风险病变检测模型/binary_categories_y7-12-0.pt；
 
 v3.2:/data_us/qilei/胃部高风险病变检测模型/binary_categories_y7-22-2.pt；
 
-模型输出结果为二分类，0代表癌变（高风险区域），1代表其他类别区域；默认置信度为0.3，可在0.3附近进行置信度调整；
+***Latest update!***
+
+v4.1:/data_us/qilei/胃部高风险病变检测模型/
+
+模型输出结果为二分类，0代表癌变（高风险区域），1和其他编号代表其他类别区域；默认置信度为0.3，可在0.3附近进行置信度调整；
 
 4.接口参数说明请参考yolov7gastroscopy/inference.py，用例请参考test_inference.py
