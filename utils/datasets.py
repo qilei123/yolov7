@@ -2474,8 +2474,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
             self.datasets_count.append(len(self.img_files))
             
-            times_12zc = 5
-            cat_id = 1 #1代表分2类，2代表分三类
+            times_12zc = 3
+            cat_id = 2 #1代表分2类，2代表分三类
             if True: #将带有十二指肠乳头的fp数据集纳入训练过程
                 append_fp_data_dir = "data_gc/胃部高风险病变误报图片"
                 if not test_mode:
@@ -2485,7 +2485,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
             self.datasets_count.append(len(self.img_files))
             
-            times_12zc = 5
+            times_12zc = 3
             #cat_id = 1 #1代表分2类，2代表分三类
             if True: #将手动标注的带有十二指肠乳头的fp数据集纳入训练过程
                 append_fp_data_dir = "data_gc/gas12nips"
@@ -2584,6 +2584,26 @@ class LoadCOCOv2(LoadImagesAndLabels):
                         self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:0})            
 
             self.datasets_count.append(len(self.img_files))  
+            
+            repeat_time = 1
+            if True: #随机从胃部部位数据集中手动挑选和标注的生成式正样本纳入训练中
+                append_fp_data_dir = "data_gc/gastro_images1"
+                
+                if not test_mode:
+                    for rt in range(repeat_time):
+                        self.load_standard_gastro(append_fp_data_dir,select_cats_id=[7,],cat_id_map={7:0})            
+
+            self.datasets_count.append(len(self.img_files)) 
+            
+            repeat_time = 1
+            if True: #随机从胃部部位数据集中手动挑选和标注的生成式正样本纳入训练中
+                append_fp_data_dir = "data_gc/gastro_images2"
+                
+                if not test_mode:
+                    for rt in range(repeat_time):
+                        self.load_standard_gastro(append_fp_data_dir,select_cats_id=[1,],cat_id_map={1:0})            
+
+            self.datasets_count.append(len(self.img_files)) 
 
         self.shapes = np.array(self.shapes, dtype=np.float64)
         #self.img_files = list(cache.keys())  # update
