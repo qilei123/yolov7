@@ -3,18 +3,27 @@ from y7models.yolo import Model
 from y7utils.torch_utils import intersect_dicts
 import time
 import pickle
+import glob,os
 
 def test_case():
-    gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=3)
+    gastro_disease_detector = GastroDiseaseDetect(conf = 0.25,half =True,gpu_id=3)
 
     #model_dir = 'single_category_y7.pt'
     #model_dir = 'multi_categories_y7.pt'
     #model_dir = 'binary_categories_y7-1-3.pt'
     model_dir = 'binary_categories_y7-22-2.pt'
+    #model_dir = '3categories_y7-22-2-31-v-150.pt'
     gastro_disease_detector.ini_model(model_dir)
 
-    while True:
-        image = cv2.imread("0000006215.jpg")
+    img_rel_dir = 'data_gc/AI-TEST-fujian'
+    
+    img_dir_list = glob.glob(os.path.join(img_rel_dir,'images','*.jpg'))
+    
+    test_save_dir = os.path.join(img_rel_dir,'test_save_3.2')
+    os.makedirs(test_save_dir,exist_ok=True)
+    
+    for img_dir in img_dir_list:
+        image = cv2.imread(img_dir)
         
         t1 = time.time()
 
@@ -27,7 +36,7 @@ def test_case():
         print(f'({(1E3 * (t2 - t1)):.1f}ms) Inference')
 
 
-        gastro_disease_detector.show_result_on_image(image,result,'test_result.jpg')
+        gastro_disease_detector.show_result_on_image(image,result,os.path.join(test_save_dir,os.path.basename(img_dir)))
 
 def transfer_model(src,dst):
     '''
