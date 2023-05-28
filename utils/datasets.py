@@ -582,7 +582,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
     #     return self
 
     def __getitem__(self, index):
-        index = self.indices[index]  # linear, shuffled, or image_weights
+        index = self.indices[index%len(self.indices)]  # linear, shuffled, or image_weights
 
         hyp = self.hyp
         mosaic = self.mosaic and random.random() < hyp['mosaic']
@@ -2605,7 +2605,7 @@ class LoadCOCOv2(LoadImagesAndLabels):
 
             self.datasets_count.append(len(self.img_files)) 
             
-            repeat_time = 0
+            repeat_time = 1
             if True: #随机从胃部2000数据集中手动挑选和标注的空洞负样本纳入训练中
                 append_fp_data_dir = "data_gc/gastro_images2_hole"
                 
@@ -2630,6 +2630,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
             self.indices = [*range(n)]
             if shuffle:
                 random.shuffle(self.indices)
+                
+        
             
         debug_4_short = False
         if debug_4_short and not test_mode:
@@ -2666,7 +2668,10 @@ class LoadCOCOv2(LoadImagesAndLabels):
             self.images_cache_and_save()
         else:
             self.images_cache()
+            self.dataset_filter_with_cat_id(0)#只训练高风险病变
         #self.images_cache_and_save()
+
+        
 
         # Update labels
         include_class = []  # filter labels to include only these classes (optional)
@@ -2872,6 +2877,31 @@ class LoadCOCOv2(LoadImagesAndLabels):
     def shuffle_indices(self):
         #print('shuffle indices!')
         random.shuffle(self.indices)
+        
+    def dataset_filter_with_cat_id(self,cat_id=0):
+        indices = []
+        for indice in self.indices:
+            boxes = self.labels[indice]
+            segs = self.segments[indice]
+            
+            
+            filted_indexes = boxes[:,0]==cat_id
+            
+            _boxes =boxes[filted_indexes]
+            
+            _segs = []
+            
+            for index,filter in enumerate(filted_indexes):
+                if filter:
+                    _segs.append( segs[index])
+                    
+            if _boxes.shape[0] > 0:
+                indices.append(indice)
+                self.labels[indice] = _boxes
+                self.segments[indice] = _segs   
+                
+        self.indices = indices     
+        
 class LoadCOCOEC(LoadImagesAndLabels):
     def __init__(self, path, img_size=640, batch_size=16, augment=False, hyp=None, rect=False, image_weights=False,
                  cache_images=False, single_cls=False, stride=32, pad=0.0, prefix=''):
