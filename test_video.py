@@ -1091,7 +1091,7 @@ def process_videos_trains():
     #                'WJ_V1_with_mfp7-22-2-25',
     #                'WJ_V1_with_mfp7-22-2-25-2',
     #                ]
-    model_names = ['WJ_V1_with_mfp7-22-2-31-v',]
+    model_names = ['WJ_V1_with_mfp7-22-2-33-v',]
     #model_names = ['WJ_V1_with_mfp7-22-2_retrain',]
     #model_names = ['WJ_V1_with_mfp7-22-2-29-v',]
     videos_dirs = [#'data_gc/videos_test/xiehe2111_2205',
@@ -1101,7 +1101,9 @@ def process_videos_trains():
                       #'epoch_122',
                       #'epoch_153',
                       #'epoch_150',
-                      'epoch_173',
+                      #'epoch_173',
+                      #'epoch_126',
+                      'epoch_131',
                       #"best",
                       #"best_f1",
                       #"best_f2",
@@ -1117,7 +1119,7 @@ def process_videos_trains():
                                _model_name=model_name,
                                _videos_dir=videos_dir,
                                _model_pt_name=model_pt_name,
-                               _gpu_id = 1,
+                               _gpu_id = 3,
                                visualize_fp=True,
                                visualize_fn=True,
                                visualize_tp=True)
