@@ -1091,11 +1091,11 @@ def process_videos_trains():
     #                'WJ_V1_with_mfp7-22-2-25',
     #                'WJ_V1_with_mfp7-22-2-25-2',
     #                ]
-    model_names = ['WJ_V1_with_mfp7-22-2-33-v',]
+    model_names = ['WJ_V1_with_mfp7-22-2-34-v',]
     #model_names = ['WJ_V1_with_mfp7-22-2_retrain',]
     #model_names = ['WJ_V1_with_mfp7-22-2-29-v',]
-    videos_dirs = [#'data_gc/videos_test/xiehe2111_2205',
-                   'data_gc/videos_test/十二指肠乳头视频片段',
+    videos_dirs = ['data_gc/videos_test/xiehe2111_2205',
+                   #'data_gc/videos_test/十二指肠乳头视频片段',
                    ]
     model_pt_names = [#"epoch_105",
                       #'epoch_122',
@@ -1103,7 +1103,8 @@ def process_videos_trains():
                       #'epoch_150',
                       #'epoch_173',
                       #'epoch_126',
-                      'epoch_131',
+                      #'epoch_131',
+                      'epoch_146',
                       #"best",
                       #"best_f1",
                       #"best_f2",

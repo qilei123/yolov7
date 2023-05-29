@@ -45,11 +45,18 @@ def inference_2():
     gastro_disease_detector = GastroDiseaseDetect(half =True,gpu_id=3)
 
     #gastro_disease_detector.ini_model(model_dir="out/WJ_V1_with_mfp7-22-2_retrain/yolov7-wj_v1_with_fp/weights/best.pt")
-    gastro_disease_detector.ini_model(model_dir="27_yolov7_output/WJ_V1_with_mfp7-22-2-22/yolov7-wj_v1_with_fp/weights/best.pt")
-    src_image_folder = 'data_gc/gastro_images_bubble_samples/images'
+    
+    
+    model_dir="27_yolov7_output/bkup/WJ_V1_with_mfp7-22-2_retrain/yolov7-wj_v1_with_fp/weights/best.pt"
+    
+    model_folder = model_dir.split("/")[2]
+    
+    gastro_disease_detector.ini_model(model_dir=model_dir)
+    
+    src_image_folder = 'data_gc/AI-TEST-fujian/images'
     img_dir_list = glob.glob(os.path.join(src_image_folder,"*.jpg"))
     
-    save_image_folder = 'data_gc/gastro_images_bubble_samples/result_images'
+    save_image_folder = 'data_gc/AI-TEST-fujian/'+model_folder
     os.makedirs(save_image_folder,exist_ok=True)
 
     for img_dir in img_dir_list:
