@@ -2668,10 +2668,8 @@ class LoadCOCOv2(LoadImagesAndLabels):
             self.images_cache_and_save()
         else:
             self.images_cache()
-            self.dataset_filter_with_cat_id(0)#只训练高风险病变
+            #self.dataset_filter_with_cat_id(0)#只训练高风险病变
         #self.images_cache_and_save()
-
-        
 
         # Update labels
         include_class = []  # filter labels to include only these classes (optional)
