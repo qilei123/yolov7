@@ -141,6 +141,9 @@ class GastroDiseaseDetect():
 
         # Get names and colors
         names = self.model.module.names if hasattr(self.model, 'module') else self.model.names
+        
+        names = ['high-risk','other1','other2']
+        
         colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
 
         positive =False

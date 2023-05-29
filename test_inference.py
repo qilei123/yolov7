@@ -47,9 +47,13 @@ def inference_2():
     #gastro_disease_detector.ini_model(model_dir="out/WJ_V1_with_mfp7-22-2_retrain/yolov7-wj_v1_with_fp/weights/best.pt")
     
     
-    model_dir="27_yolov7_output/bkup/WJ_V1_with_mfp7-22-2_retrain/yolov7-wj_v1_with_fp/weights/best.pt"
+    #model_dir="27_yolov7_output/WJ_V1_with_mfp7-22-2-31-v/yolov7-wj_v1_with_fp/weights/epoch_150.pt"
+    #model_dir='27_yolov7_output/WJ_V1_with_mfp7-22-2-33-v/yolov7-wj_v1_with_fp/weights/epoch_145.pt'
+    #model_dir='27_yolov7_output/bkup/WJ_V1_with_mfp7-22-2_retrain/yolov7-wj_v1_with_fp/weights/best.pt'
+    model_dir = '27_yolov7_output/WJ_V1_with_mfp7-22-2-34-v/yolov7-wj_v1_with_fp/weights/epoch_146.pt'
     
-    model_folder = model_dir.split("/")[2]
+    
+    model_folder = model_dir.split("/")[1]
     
     gastro_disease_detector.ini_model(model_dir=model_dir)
     
@@ -58,6 +62,8 @@ def inference_2():
     
     save_image_folder = 'data_gc/AI-TEST-fujian/'+model_folder
     os.makedirs(save_image_folder,exist_ok=True)
+
+    pos_counter = 0
 
     for img_dir in img_dir_list:
         image = cv2.imread(img_dir)
@@ -77,8 +83,13 @@ def inference_2():
 
         image, positive = gastro_disease_detector.show_result_on_image_positive(image,result,'',[0])
         
+        
         if positive:
+            pos_counter += 1
+        
             cv2.imwrite(os.path.join(save_image_folder,os.path.basename(img_dir)),image)
+        
+    print(pos_counter)
     
 if __name__ == "__main__":
     #inference_1()
