@@ -328,7 +328,25 @@ def get_best():
             #print('best:{0};{1};{2};{3};{4}'.format(bf05_e,bf1_e,bf2_e,br_e,br_p_e))
         
         line = record_file.readline()
+
+def crop_images(imgs_dir='/data3/qilei_chen/DATA/301_1600_ade/images_data/回顾性息肉性质判断图片/白光',
+                save_dir='/data3/qilei_chen/DATA/301_1600_ade/images_data/回顾性息肉性质判断图片/白光_cropped'):
+
+    img_dir_list = glob.glob(os.path.join(imgs_dir, "*.jpg"))
     
+    roi = None
+    
+    os.makedirs(save_dir, exist_ok=True)
+    
+    for img_dir in img_dir_list:
+        image = cv2.imdecode(np.fromfile(img_dir, dtype=np.uint8), -1)
+        if roi == None:
+            image , roi = CropImg(image)
+        else:
+            image = CropImg(image,roi)
+            
+        cv2.imencode('.jpg', image)[1].tofile(os.path.join(save_dir, os.path.basename(img_dir)))
+
 if __name__=="__main__":
     #change_video_names2()
     #crop_wg(anno_dir = "/data2/qilei_chen/DATA/2021_2022gastro_cancers/2021_1/")
@@ -351,5 +369,7 @@ if __name__=="__main__":
     #crop_wg(anno_dir="data_ec/user11/201412_201912-148", _items_map={'食管癌':'EsophagealCancer',})
     #crop_wg(anno_dir="data_gc/gas12nips",_items_map={'gas12nip':'gas12nip',})
     #procee_data_gl()
-    get_best()
+    #get_best()
+    #crop_images()
+    pass
     
